@@ -6,8 +6,8 @@ GPU-backed, uncensored ("heretic"/abliterated) models don't — so we use them f
 the adversarial passes: red-teaming attack paths, refuting shaky findings, and
 naming gaps the primary analysis skipped.
 
-Backend: this machine's Windows Ollama, reachable from WSL only via the Tailscale
-IP (WSL2 NAT). Override with --host / OLLAMA_GEN_URL. No third-party deps.
+Backend: a local, GPU-backed Ollama host serving the abliterated models. Point
+it at yours with --host or the OLLAMA_GEN_URL env var. No third-party deps.
 
 Usage:
   # feed the workflow's JSON result (or any {..., "findings": [...]} / list)
@@ -23,7 +23,7 @@ Modes:
 """
 import argparse, json, os, sys, urllib.request, urllib.error
 
-DEFAULT_HOST = os.environ.get("OLLAMA_GEN_URL", "http://100.73.200.19:11434")
+DEFAULT_HOST = os.environ.get("OLLAMA_GEN_URL", "http://127.0.0.1:11434")
 # Most capable uncensored model on the gen host; override with --model.
 DEFAULT_MODEL = os.environ.get(
     "HERETIC_MODEL",
