@@ -46,6 +46,15 @@ Battery/heater/power (voltages, currents, temps), `storage_wear_level`, `fw_vers
 `luksVersion`, `cipherName`, `cipherMode`). The device *reports* an encryption posture to the
 backend even though the media key is stored in the clear. See [Security posture](security-posture.md).
 
+## Runtime surface (confirmed from crash-pack logs)
+Across 6+ months of logs the device's entire network surface is **3 hosts**: two REST APIs
+(legacy v1 + v4, used by `phonehomeservice`) and one raw-TLS **binary-upload** socket
+(`ConnectionClient`). A ~**36.5 KB** telemetry/status payload posts every cycle (distinct from
+the tiny heartbeat). The upload backend self-reports ~**1,950 internal pod IPs** (a large
+load-balanced fleet). The binary-upload channel authenticates with a **static per-device token
+that never changed** — and is logged in cleartext (see [Crash logs](crash-logs.md)). The
+`objects` ML app makes no network calls itself; the OTA source host is never logged.
+
 ## Transport security
 - **No certificate pinning** in any examined app (no Network Security Config; `CertificatePinner`
   present only as unused library code).

@@ -22,5 +22,17 @@ Core native libs: `libnativeML.so` (JNI `NativeML`) and `libnativeImageUtils.so`
 - **Process-kill DoS:** the FastCV MSER OCR initializer calls `exit(1)` on out-of-range derived
   parameters, terminating the whole host process.
 
+## Runtime behavior (confirmed from crash-pack logs)
+- The live on-device detector is a **single native YOLO** (`yolo_pico3_float16` via `nativeML`),
+  constant across 6 months, running **CPU-only** (no GPU/NNAPI/DSP delegate in logs).
+- Per-detection **confidence scores are never logged**; gating uses proxies (plate pixel-width,
+  a day/night threshold split).
+- **No hotlist/watchlist matching happens on-device** — Flock's headline "wanted plate" feature
+  is entirely backend-side; the camera just uploads captures + metadata.
+- **No per-detection GPS** on-device. What leaves per session is an MP4 (plate + vehicle brackets)
+  plus session/asset metadata.
+- The encoder applies an ROI privacy **blur to ~47%** of videos and dehaze to ~19%; retention is
+  a disk-85%-full + age policy.
+
 ## See also
-- [ML models](ml-models.md) · [Apps](apps.md) · [Security posture](security-posture.md) · [Backend protocol](backend-protocol.md)
+- [ML models](ml-models.md) · [Apps](apps.md) · [Security posture](security-posture.md) · [Backend protocol](backend-protocol.md) · [Crash logs](crash-logs.md)

@@ -54,10 +54,12 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   RSA-2048 verification lives in recovery — but the unlocked, test-key bootloader accepts a
   reflashed recovery, and there's no anti-rollback floor. See [OTA & updates](ota-updates.md).
 
-## Diagnostics
-- **Secrets in plaintext logs.** The gzipped crash packs in the capture store contain app
-  logs with a **bearer token** and **password** strings in the clear, plus live LTE
-  cell-tower IDs in `modemInfo.txt`. See [Crash logs](crash-logs.md).
+## Diagnostics (high)
+- **Static upload credential logged in cleartext.** A per-device client-auth token that
+  authenticates every media upload is written to the logs in full ~**3,906 times** over 6+
+  months, at ordinary log level — so it ships inside every crash pack (which are exposed via
+  an unauthenticated endpoint, CVE-2025-59403). Unreported publicly. See [Crash logs](crash-logs.md).
+- **Other secrets in logs** — password strings and live LTE cell-tower IDs (`modemInfo.txt`).
 
 ## Cross-cutting
 - **Stale software** — patch level frozen 2018-06-05 on a 2025 build. See [Android userland](android-userland.md).

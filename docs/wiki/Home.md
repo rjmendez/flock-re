@@ -27,6 +27,9 @@ firmware leak. Static analysis only. Backend hostnames and all secrets are obfus
 - [Backend protocol](backend-protocol.md)
 - [OTA & updates](ota-updates.md)
 
+## Meta
+- [Prior work & what's new](prior-work.md) — public coverage vs this project's contribution
+
 ## Reference
 - [Glossary](glossary.md) — plain-language terms
 
