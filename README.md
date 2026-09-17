@@ -6,6 +6,12 @@ Tooling for reverse-engineering a Flock Safety ALPR camera firmware dump
 Tools only. Raw dumps, extracted filesystems, captured media, and any secrets
 stay untracked — see `.gitignore`.
 
+## Docs
+
+[`docs/wiki/`](docs/wiki/Home.md) — a cross-linked wiki on the firmware's structure
+(hardware, partitions, boot, apps, ALPR pipeline, backend protocol, security posture).
+Hostnames and secrets are obfuscated.
+
 ## Tools
 
 - **`tools/download/bt.py`** — libtorrent fetcher for the dump. Resumable, adds a
