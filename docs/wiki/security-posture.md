@@ -61,6 +61,23 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   an unauthenticated endpoint, CVE-2025-59403). Unreported publicly. See [Crash logs](crash-logs.md).
 - **Other secrets in logs** — password strings and live LTE cell-tower IDs (`modemInfo.txt`).
 
+## Deeper pass (surface swarm)
+- **Unauthenticated servicing server** (`collins` :8080, system UID, 21 routes incl. ADB→RCE and
+  ALPR-DB exfil), reachable over an installer Wi-Fi AP with a hardcoded key. See [Local attack surface](local-attack-surface.md).
+- **Backend can overwrite any camera setting** (no signature) and mint fleet credentials from a
+  MAC alone. See [Backend protocol](backend-protocol.md).
+- **Test-signed secure world** (TZ/keymaster/aboot carry test certs) → key-attestation forgery /
+  re-provisioning; `/persist` holds attestation keys. See [Boot chain](boot-chain.md).
+- **"Deleted" media may be recoverable** — an archive DB retains records and a OneShot "reprocess"
+  path can republish; retention is remote-config with no minimum.
+- **Fleet telemetry to Datadog** — a public RUM client token embedded in 8+ apps, every log event
+  tagged with the device serial (redacted).
+- **Cellular MITM avenues** — eSIM shared-profile TOFU failover after ~10 min LTE loss, and an
+  `ApnHelper` APN-injection path with no user consent; Sierra modem firmware updates lack
+  signature/rollback checks. See [Cellular & location](cellular-and-location.md).
+- **Persist survives factory reset** — device serial embedded in a JWT claim, provisioning
+  timestamp, and diagnostics history cross the reset boundary.
+
 ## Cross-cutting
 - **Stale software** — patch level frozen 2018-06-05 on a 2025 build. See [Android userland](android-userland.md).
 - **Bulk collection (privacy)** — captures all passing vehicles/bystanders, not just watchlist hits.
