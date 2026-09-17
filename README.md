@@ -12,5 +12,3 @@ stay untracked — see `.gitignore`.
   web-seed fallback, verifies piece hashes.
 - **`workflow/flock-firmware-peel.js`** — multi-agent workflow: installs the
   toolchain, extracts the partitions in parallel, runs a first-pass decompile.
-- **`adversarial/redteam_local.py`** — runs RE findings through a local
-  abliterated model (`redteam` / `refute` / `gaps` modes). Set `OLLAMA_GEN_URL`.
