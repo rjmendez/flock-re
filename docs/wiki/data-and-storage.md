@@ -27,6 +27,18 @@ dump), while the capture store is encrypted with its key left in the clear.
   the board-matched implementation is a literal `return true;`, a second is unimplemented, the
   third fails open, and there's no `cryptsetup`/LUKS tooling. Non-functional.
 
+## What's in the capture store (decrypted, metadata only)
+Decrypting the `android_expand` volume's ext4 and walking it (metadata only, no frame
+data) shows:
+- **~27,321 `.mp4` video files, ~13.2 GiB** — the captures are **video, not stills** (which is
+  why EXIF-JPEG scans found nothing). Laid out under `/media/0/media/` in per-session dirs.
+- **4 gzipped crash dumps** (`.pak`, ~165 MiB) in `/media/0/media/crashpack/`, spanning
+  2025‑07 → 2026‑01 — gzip (`1f8b08`), i.e. crash/diagnostic packs, **not yet opened**.
+- **Video metadata:** each MP4 carries a `moov` with `mvhd` **creation_time** and a
+  `meta`→`keys`/`ilst` tag block + handler info; the sampled file had **no in-file GPS**
+  (`©xyz`/`loci`) atom. Geolocation travels out-of-band in the [upload `Location` record](backend-protocol.md),
+  not the video container. (One sample; values redacted.)
+
 ## More partitions
 - **`persist` (32 MiB):** device identity/settings, survives factory reset. Holds the OAuth
   client credential + token as **plaintext JSON** under `/persist/<vendor>/auth0/`. No SQLite or
