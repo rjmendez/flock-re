@@ -17,6 +17,7 @@ firmware leak. Static analysis only. Backend hostnames and all secrets are obfus
 - [Kernel & drivers](kernel.md)
 - [Android userland](android-userland.md)
 - [Data & storage](data-and-storage.md)
+- [Crash logs](crash-logs.md)
 
 ## Software
 - [Apps](apps.md)

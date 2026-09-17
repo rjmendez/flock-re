@@ -54,6 +54,11 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   RSA-2048 verification lives in recovery — but the unlocked, test-key bootloader accepts a
   reflashed recovery, and there's no anti-rollback floor. See [OTA & updates](ota-updates.md).
 
+## Diagnostics
+- **Secrets in plaintext logs.** The gzipped crash packs in the capture store contain app
+  logs with a **bearer token** and **password** strings in the clear, plus live LTE
+  cell-tower IDs in `modemInfo.txt`. See [Crash logs](crash-logs.md).
+
 ## Cross-cutting
 - **Stale software** — patch level frozen 2018-06-05 on a 2025 build. See [Android userland](android-userland.md).
 - **Bulk collection (privacy)** — captures all passing vehicles/bystanders, not just watchlist hits.
