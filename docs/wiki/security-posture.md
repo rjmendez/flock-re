@@ -22,10 +22,13 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   device, usable as a legacy-auth fallback. See [Backend protocol](backend-protocol.md).
 - **Plaintext credential stores.** Cached tokens/passwords sit in plaintext in on-device
   databases and in `/persist` JSON. See [Data & storage](data-and-storage.md).
-- **Media store is plaintext (confirmed).** The ALPR capture partition is a normal mountable
-  ext4 filesystem with no encryption; the "encrypt media" routine is a no-op and no LUKS tooling
-  exists. `/data` uses real hardware-backed FDE — so the vendor encrypts its data, not the
-  captured imagery. See [Data & storage](data-and-storage.md).
+- **Capture store is encrypted, but the key is in the clear (proven decryptable).** The media
+  `android_expand` volume is real dm-crypt (`aes-128-cbc-essiv:sha256`), but its 16-byte AES key
+  is stored **in plaintext beside it** — decryption was **verified** (the ext4 superblock
+  recovers), so any device holder can read all captured footage. A *separate* app-level
+  `encryptMediaPartition()` layer is a decorative no-op. Meanwhile `/data` is properly
+  hardware-key-wrapped FDE whose key is **not** recoverable from the dump — so the vendor
+  protects its own app data better than the surveillance imagery. See [Data & storage](data-and-storage.md).
 - **Unauthenticated on-device HTTP control server.** One app runs an embedded HTTP server,
   triggerable by an unauthenticated broadcast, exposing reboot, ADB-over-Wi-Fi toggle, live-view
   toggle, and factory-reset. See [Local attack surface](local-attack-surface.md).

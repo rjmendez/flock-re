@@ -26,6 +26,26 @@ values redacted** — shape only.
   `HELLO → UPLOAD_START → UPLOAD_METADATA → UPLOAD_HASH → UPLOAD_SAVE → BYE`, with SHA-256
   file-hash verification.
 
+## What each capture transmits (from the app data models)
+Per captured vehicle, the device records/sends structured metadata (field names from the
+decompiled models; no values shown):
+- **Precise location** — `latitude`, `longitude`, `altitude`, `accuracy` (an `uploadclient`
+  `Location` object). The device geotags captures with full GPS.
+- **Per-detection** (`Detection`) — object `className` (e.g. licensePlate/vehicle), `confidence`,
+  `quality`, bounding box (`xmin/xmax/ymin/ymax`), `direction`, `trackId`.
+- **Capture envelope** (`DetectionResults` / `MediaAsset`) — `cameraSerial`, `cameraType`,
+  `modelName`/`modelVersion`, `cameraId`, `width`/`height`, `cropInfo`, `licensePlateExposure`,
+  `metadataMl`, `createdAt`.
+
+Note: captures carry **no EXIF** (the app and native image code write none — 0 `ExifInterface`
+refs); all this metadata rides in the structured records/upload payload, not in the image files.
+
+### Device telemetry (separate health payload)
+Battery/heater/power (voltages, currents, temps), `storage_wear_level`, `fw_version`,
+`board_version`, charger state — **and encryption-status fields** (`encryption`, `encrypted`,
+`luksVersion`, `cipherName`, `cipherMode`). The device *reports* an encryption posture to the
+backend even though the media key is stored in the clear. See [Security posture](security-posture.md).
+
 ## Transport security
 - **No certificate pinning** in any examined app (no Network Security Config; `CertificatePinner`
   present only as unused library code).
