@@ -1,19 +1,30 @@
 # Data & storage
 
-Where the device keeps things. This project reports **structure only** — never the contents of
-captured media or personal records, and never secret values.
+Where the device keeps things. **Structure only** — never the contents of captured media or
+personal records, and never secret values.
 
-- **`media` (18 GiB):** captured image/video store — the surveillance data itself. Not
-  extracted or redistributed here.
-- **`userdata` (6.1 GiB):** app working data — SQLite databases, configuration, shared
-  preferences, cached sign-in tokens. Documented as schemas/table names only.
-- **`persist` (32 MiB):** device identity and settings that survive factory reset. Holds
-  vendor auth material under `/persist/<vendor>/auth0/`.
+## Partitions
+- **`media` (18 GiB):** captured image/video store. On this dump it's a high-entropy
+  `android_expand` volume (looks encrypted), most likely under AOSP vold's default per-volume key
+  — but note the media-encryption routine is a **no-op on this device's code path**
+  (see [Security posture](security-posture.md)). Not extracted or redistributed here.
+- **`userdata` (6.1 GiB):** app working data. On this dump it does not parse as a plain
+  filesystem (high entropy) — treated as encrypted/opaque; not carved.
+- **`persist` (32 MiB):** device identity/settings, survives factory reset. Holds the OAuth
+  client credential + token as **plaintext JSON** under `/persist/<vendor>/auth0/`. No SQLite or
+  shared_prefs here; the DRM/keystore skeleton dirs are empty on this unit.
 
-Credential exposure (described, not disclosed): the persist area contains an OAuth client
-credential and cached access tokens **in cleartext**. Raw values are never published; validity
-is deliberately untested. Public teardowns also report an unencrypted media-decryption key on
-this device class — locating it in this dump is a deep-dive item. See [Security posture](security-posture.md).
+## On-device databases (schemas recovered from app code, not from userdata)
+The apps use Room (SQLite); the `CREATE TABLE` SQL is embedded in the app code, so schemas are
+readable even though `userdata` is opaque:
+- **ALPR capture pipeline:** `sessions`, `assets`, and per-stage timing tables.
+- **`core_values`** (settings app): stores `auth_token` as **plaintext TEXT**, alongside serial
+  number and upload/status URLs.
+- **`accessory`** (system-control app): stores `auth_password` / `auth_token` as **plaintext
+  TEXT** for paired hardware accessories.
+
+For privacy this project reports schemas/table names only — never row contents. Raw secret
+values are never published.
 
 ## See also
-- [Backend protocol](backend-protocol.md) · [Partition map](partition-map.md) · [Security posture](security-posture.md)
+- [Backend protocol](backend-protocol.md) · [Security posture](security-posture.md) · [Partition map](partition-map.md)

@@ -1,17 +1,28 @@
 # Cellular & location
 
-The camera is a self-contained cellular edge device — no wired network needed.
+A self-contained cellular edge device. Notably it carries **two distinct radio stacks**.
 
-- **Baseband:** Qualcomm MPSS modem firmware in the `modem` partition (NON-HLOS), version
-  `MPSS.TA.2.3.c1-…-8953_*`. Modem state lives in `modemst1/2`, `fsg`, `fsc`.
-- **Connectivity:** LTE WAN with an **eSIM** (vendor property reads the eSIM EID); a
-  vendor hook can restart the modem.
-- **Carrier config:** `mcfg` partition holds carrier/APN profiles.
-- **Location:** on-board **GNSS** with a diagnostic interface (`gps/gnss/diag`), so each
-  detection can be geotagged.
+## Radios
+- **SoC-integrated baseband:** Qualcomm MPSS in the `modem` partition, version
+  `MPSS.TA.2.3.c1-…-8953_*`, built 2019-04-01. Also hosts GNSS/IZat. Modem state in
+  `modemst1/2`, `fsg`, `fsc`.
+- **Separate WWAN module:** a physically distinct **Sierra Wireless SWI9X07H** module
+  (own baseband, `SierraFwDl` firmware-download tool present) — a second radio subsystem.
+- **Baseband exposure:** the MPSS version predates the fix for a published **LTE NAS
+  integrity-bypass CVE** (rogue-base-station class, CVSS 9.8). Plausibility by version/date,
+  *static-only*. See [Security posture](security-posture.md).
 
-Attack-surface context (baseband/cellular) is public-CVE informational only; this project does
-no radio interaction. See [Security posture](security-posture.md).
+## SIM / carrier
+- **eSIM (GSMA RSP)** with a baked-in **Twilio bootstrap/fallback profile** auto-activated
+  fleet-wide by a connectivity watchdog (`lte_check`).
+- On this unit `mcfg` (carrier config) and `fsg` (normally IMEI/MEID/NV) are **byte-for-byte
+  zero** — no carrier profile or device-unique identifier recoverable at rest.
+
+## Location
+- On-board **GNSS** via Qualcomm's IZat/`gpsdiag` module (DIAG-controlled, XTRA assist, NMEA to
+  Android), so detections are geotagged.
+- `/dev/diag` is **not** world-accessible (mode 0660, group `oem_*`) and DIAG isn't in the
+  default USB gadget config — the DIAG attack surface is not exposed by default.
 
 ## See also
-- [Hardware](hardware.md) · [Partition map](partition-map.md)
+- [Hardware](hardware.md) · [Partition map](partition-map.md) · [Security posture](security-posture.md)

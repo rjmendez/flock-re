@@ -6,7 +6,10 @@ firmware leak. Static analysis only. Backend hostnames and all secrets are obfus
 ## Device
 - [Hardware](hardware.md)
 - [Cellular & location](cellular-and-location.md)
-- [Security posture](security-posture.md)
+
+## Security
+- [Security posture](security-posture.md) — confirmed findings, ranked
+- [Local attack surface](local-attack-surface.md) — exported components, remote debug
 
 ## Firmware layout
 - [Partition map](partition-map.md)
