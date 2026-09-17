@@ -12,6 +12,12 @@ A self-contained cellular edge device. Notably it carries **two distinct radio s
   integrity-bypass CVE** (rogue-base-station class, CVSS 9.8). Plausibility by version/date,
   *static-only*. See [Security posture](security-posture.md).
 
+## Carrier (from logs)
+Runtime logs show the active uplink is **cellular LTE on Verizon** (APN `VZWINTERNET`); no
+Wi-Fi uplink in any captured session. The device polls its backend `oneShot` endpoint every
+~61 s (adaptive backoff to ~60 min) and uses Google `generate_204` for connectivity checks.
+See [Backend protocol](backend-protocol.md).
+
 ## SIM / carrier
 - **eSIM (GSMA RSP)** with a baked-in **Twilio bootstrap/fallback profile** auto-activated
   fleet-wide by a connectivity watchdog (`lte_check`).
