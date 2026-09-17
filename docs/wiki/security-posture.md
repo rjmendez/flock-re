@@ -22,9 +22,21 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   device, usable as a legacy-auth fallback. See [Backend protocol](backend-protocol.md).
 - **Plaintext credential stores.** Cached tokens/passwords sit in plaintext in on-device
   databases and in `/persist` JSON. See [Data & storage](data-and-storage.md).
-- **Media encryption no-op.** On this device's selected code path the "encrypt media partition"
-  routine does nothing (returns success without acting); a sibling board variant fails *open* on
-  an unset flag. *(static-only for effect)*
+- **Capture store is encrypted, but the key is in the clear (proven decryptable).** The media
+  `android_expand` volume is real dm-crypt (`aes-128-cbc-essiv:sha256`), but its 16-byte AES key
+  is stored **in plaintext beside it** — decryption was **verified** (the ext4 superblock
+  recovers), so any device holder can read all captured footage. A *separate* app-level
+  `encryptMediaPartition()` layer is a decorative no-op. Meanwhile `/data` is properly
+  hardware-key-wrapped FDE whose key is **not** recoverable from the dump — so the vendor
+  protects its own app data better than the surveillance imagery. See [Data & storage](data-and-storage.md).
+- **Unauthenticated on-device HTTP control server.** One app runs an embedded HTTP server,
+  triggerable by an unauthenticated broadcast, exposing reboot, ADB-over-Wi-Fi toggle, live-view
+  toggle, and factory-reset. See [Local attack surface](local-attack-surface.md).
+- **Full capture-DB exfil via exported receiver.** Another app's exported (no-permission)
+  receiver copies the entire ALPR capture database to a shared path on a broadcast.
+- **All apps ship `debuggable=true`** in production; a factory test-harness app with open
+  exported services ships in the production image; a second default API key (value redacted)
+  and cross-app permissions declared `normal`/undeclared widen the on-device surface.
 
 ## Native memory safety (critical/medium)
 - **Integer overflow → out-of-bounds** in the image-utility library's YUV size check (a 32-bit
@@ -38,6 +50,16 @@ depends on runtime/backend behavior it's marked *(static-only)*.
 - **Baseband** version predates the fix for a published LTE NAS integrity-bypass CVE
   (rogue-base-station class, CVSS 9.8) — *(plausibility by version/date, static-only)*. See
   [Cellular & location](cellular-and-location.md).
+- **OTA integrity bypassable.** The app-level update check is SHA-256-only (no signature); real
+  RSA-2048 verification lives in recovery — but the unlocked, test-key bootloader accepts a
+  reflashed recovery, and there's no anti-rollback floor. See [OTA & updates](ota-updates.md).
+
+## Diagnostics (high)
+- **Static upload credential logged in cleartext.** A per-device client-auth token that
+  authenticates every media upload is written to the logs in full ~**3,906 times** over 6+
+  months, at ordinary log level — so it ships inside every crash pack (which are exposed via
+  an unauthenticated endpoint, CVE-2025-59403). Unreported publicly. See [Crash logs](crash-logs.md).
+- **Other secrets in logs** — password strings and live LTE cell-tower IDs (`modemInfo.txt`).
 
 ## Cross-cutting
 - **Stale software** — patch level frozen 2018-06-05 on a 2025 build. See [Android userland](android-userland.md).
