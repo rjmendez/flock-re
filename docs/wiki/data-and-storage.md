@@ -4,12 +4,21 @@ Where the device keeps things. **Structure only** — never the contents of capt
 personal records, and never secret values.
 
 ## Partitions
-- **`media` (18 GiB):** captured image/video store. On this dump it's a high-entropy
-  `android_expand` volume (looks encrypted), most likely under AOSP vold's default per-volume key
-  — but note the media-encryption routine is a **no-op on this device's code path**
-  (see [Security posture](security-posture.md)). Not extracted or redistributed here.
-- **`userdata` (6.1 GiB):** app working data. On this dump it does not parse as a plain
-  filesystem (high entropy) — treated as encrypted/opaque; not carved.
+- **`media` (18 GiB):** captured image/video store — **unencrypted**. `53_media.img` is a normal,
+  mountable **ext4** filesystem (plaintext superblock, no `encryptable` flag in `fstab`, no ext4
+  encrypt feature bit). The advertised "media encryption" never runs — see below and
+  [Security posture](security-posture.md). Readable by anyone holding the device; **not extracted
+  or redistributed here.**
+- **`userdata` (6.1 GiB):** app working data — **encrypted**. Uses real Qualcomm hardware-backed
+  full-disk encryption (`forceencrypt=footer`, opaque image, `libcryptfs_hw.so` with
+  ICE/QSEECOM/Keymaster). Not carved. So the vendor encrypts its own app data but leaves the
+  captured surveillance imagery in the clear.
+
+## The "media encryption" is decorative
+The apps expose an `encryptMediaPartition()` API, but no code path actually encrypts `/media`:
+the board-matched implementation is a literal `return true;`, a second is self-documented as
+unimplemented, the third only flips a property with a fail-open default — and there is **no
+`cryptsetup`/`dmsetup`/LUKS tooling anywhere** in `/system` or `/vendor`.
 - **`persist` (32 MiB):** device identity/settings, survives factory reset. Holds the OAuth
   client credential + token as **plaintext JSON** under `/persist/<vendor>/auth0/`. No SQLite or
   shared_prefs here; the DRM/keystore skeleton dirs are empty on this unit.

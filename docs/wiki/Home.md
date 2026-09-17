@@ -14,14 +14,17 @@ firmware leak. Static analysis only. Backend hostnames and all secrets are obfus
 ## Firmware layout
 - [Partition map](partition-map.md)
 - [Boot chain](boot-chain.md)
+- [Kernel & drivers](kernel.md)
 - [Android userland](android-userland.md)
 - [Data & storage](data-and-storage.md)
 
 ## Software
 - [Apps](apps.md)
 - [ALPR pipeline](alpr-pipeline.md)
+- [Camera & imaging](camera-imaging.md)
 - [ML models](ml-models.md)
 - [Backend protocol](backend-protocol.md)
+- [OTA & updates](ota-updates.md)
 
 ## Reference
 - [Glossary](glossary.md) — plain-language terms

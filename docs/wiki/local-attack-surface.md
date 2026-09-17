@@ -12,6 +12,20 @@ no exploitation performed.
   permission) accepts a broadcast that persists attacker-supplied client credentials as the
   device's sign-in identity — i.e. any on-device sender can overwrite the camera's identity.
 
+## More exported components (from the deeper pass)
+- **Unauthenticated HTTP control server.** `flock-collins` runs an embedded HTTP server
+  (NanoHTTPD), triggerable by an unauthenticated broadcast, exposing **reboot, ADB-over-Wi-Fi
+  toggle, live-view toggle, and factory-reset**.
+- **Capture-DB exfil.** `flock-amarula`'s exported (no-permission) `DatabaseExportReceiver` copies
+  the full ALPR capture database (session/asset metadata) to a shared path on a broadcast.
+- **Peripheral service.** `flock-peripheral`'s `PeripheralService` is exported with no permission,
+  exposing `reformatMediaPartition()` / `encryptMediaPartition()` with no caller check.
+- **Factory test harness in production.** `flock-assembly-validator` ships in the production image
+  with open exported test services (LED/flash/assembly tests).
+- **Weak permission gating.** Several cross-app data permissions are `protectionLevel="normal"` or
+  undeclared; all 15 Flock apps ship `android:debuggable="true"`; a shared library carries a
+  default API key (value redacted).
+
 ## Remote debug
 - **ADB-over-Wi-Fi** is gated by a custom system property (`vendor.flock.adb-wifi`) that flips
   ADB to TCP and restarts the daemon — but by itself grants no shell/root: `ro.adb.secure=1`
