@@ -36,11 +36,12 @@ const H8 = CFG.fastModel || 'llama3.1:8b'
 const H27 = CFG.deepModel || 'qwen2.5:32b'
 
 const RULES = [
-  'SCOPE: purely STATIC, OFFLINE analysis of an already-public firmware leak (DDoSecrets "Flock ALPR camera"), for defensive security research and disclosure. HARD RULE: never contact, probe, authenticate to, MITM, or send anything to ANY live Flock Safety infrastructure or any network host; never use extracted credentials/tokens against any endpoint. Reason about exposure as a THREAT MODEL from the artifact alone — do not execute or plan live attacks.',
+  'SCOPE: purely STATIC analysis of an already-public firmware leak (DDoSecrets "Flock ALPR camera"), for defensive security research and disclosure. The ANALYSIS is offline: it reads on-disk artifacts and makes no network calls. HARD RULE: never contact, probe, authenticate to, MITM, or send anything to ANY live Flock Safety infrastructure or any network host; never use extracted credentials/tokens against any endpoint. Reason about exposure as a THREAT MODEL from the artifact alone — do not execute or plan live attacks. (Open-source tools such as jadx or a tflite parser are installed ONCE beforehand; that setup is the only network step and is not part of the analysis run.)',
+  'HARD RULE — no PII: never extract, view, decode, or reproduce captured media contents or personal records (plate images, faces, vehicle/person data, GPS coordinates). Characterize STRUCTURE, SCHEMA, and COUNTS only. Any secret value stays redacted.',
   'Target: Flock Safety Falcon ALPR camera, Qualcomm MSM8953 / Android 8.1.0 (security patch frozen 2018-06-05), armeabi-v7a 32-bit userland.',
   'Extracted trees on disk (READ-ONLY): ' + RE + '/{boot,android-fs,qualcomm,secrets,data}. Raw images: "' + PARTS + '" (read-only, live torrent seed — never modify/move).',
   'Prior work to build on (read first, do not redo): ' + RE + '/all_findings.json and ' + RE + '/adversarial/full_pass.json.',
-  'Tools: binwalk, r2, ghidra headless (' + GHIDRA + '), simg2img, sqlite3, strings, file. jadx (on PATH or in your tools dir; fetch from github.com/skylot/jadx/releases, JDK 17+).',
+  'Tools: binwalk, r2, ghidra headless (' + GHIDRA + '), simg2img, sqlite3, strings, file. jadx (JDK 17+) must already be installed on PATH or in your tools dir BEFORE this run; the analysis itself makes no network calls.',
   'GRUNT WORK GOES TO LOCAL MODELS. You are a tool-runner and grounding filter, not the analyst. Extract raw material with tools (decompiled code, disassembly, DB schemas, config, strings), then hand it to the LOCAL model via mcp__loci__llm_local for the review reasoning: ' + H8 + ' for volume, escalate your 2-3 highest-severity items to ' + H27 + '. keep_alive="30m", fmt="json" for structured verdicts.',
   'GROUND every model claim against evidence you actually extracted; discard hallucinations (small models invent features). Keep only findings with concrete evidence. Record which model produced each verdict.',
   'Write artifacts to YOUR OWNED DIR: ' + DEEP + '/<your-dimension> (create it, write only there). Secrets/PII: raw to your dir, return only type+location+redacted.',
@@ -56,7 +57,7 @@ const DIM_SCHEMA = {
       severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
       category: { type: 'string' },
       grounded: { type: 'boolean' }, model_used: { type: 'string' },
-    }, required: ['claim', 'severity', 'grounded'] } },
+    }, required: ['claim', 'severity', 'grounded', 'model_used'] } },
     new_structures_found: { type: 'array', items: { type: 'string' } },
     summary: { type: 'string' }, notes: { type: 'string' },
   }, required: ['dimension', 'findings', 'summary'],
@@ -90,7 +91,7 @@ const DIMENSIONS = [
   { key: 'persist-userdata-fs', task:
     'FULL filesystem parse (not strings) of 27_persist.img and 54_userdata.img (simg2img if sparse, then debugfs/7z, no root). Enumerate /persist/flock/auth0/, and hunt specifically for the MEDIA ENCRYPTION KEY public teardowns reported unencrypted at rest (persist, /data/vendor/flock, keystore). Dump every SQLite .db schema (sqlite3 .schema — schema only) and flag tables holding plate/vehicle/location/PII; list shared_prefs. Local model assesses the at-rest exposure blast radius (does the key decrypt stored media? is the secret device-unique or fleet-shared?) as a threat model. Redact raw secret values.' },
   { key: 'tflite-models', task:
-    'Parse on-device TFLite models under ' + RE + '/android-fs (assets/flock_models/*.tflite, e.g. MLM-2857-large-fp16.tflite, MLM-2324-nano2) via a flatbuffer/tflite parser (pip install --user tflite, or flatc, or parse the header). Dump architecture/inputs/outputs/labels (confirm the licensePlate class). Local model discusses, DEFENSIVELY: model and IP-extraction exposure, and the robustness limits of the ALPR pipeline — what real-world plate conditions this detector and OCR would miss (understanding evasion to inform defenders and privacy), and data-poisoning risk.' },
+    'Parse on-device TFLite models under ' + RE + '/android-fs (assets/flock_models/*.tflite, e.g. MLM-2857-large-fp16.tflite, MLM-2324-nano2) via a pre-installed flatbuffer/tflite parser (flatc or the tflite package, installed beforehand) or by parsing the header directly. Dump architecture/inputs/outputs/labels (confirm the licensePlate class). Local model discusses, DEFENSIVELY: model and IP-extraction exposure, and the robustness limits of the ALPR pipeline — what real-world plate conditions this detector and OCR would miss (understanding evasion to inform defenders and privacy), and data-poisoning risk.' },
   { key: 'ipc-fastrpc-adb', task:
     'Static map of the on-device local IPC/debug surface: FastRPC/UTF (adsprpc) libs in ' + RE + '/android-fs/vendor/lib vs public Snapdragon 6xx FastRPC privesc CVEs, the ADB-over-WiFi property gate, exposed sockets/binder services and their SELinux domains (init*.rc in ' + RE + '/boot, sepolicy in vendor). Local model identifies local privilege-escalation footholds present on the device; ground against the actual init.rc/sepolicy. On-device static analysis only.' },
   { key: 'protocol-map', task:

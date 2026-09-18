@@ -52,11 +52,11 @@ const DIM_SCHEMA = {
       claim: { type: 'string' }, structure: { type: 'string' }, evidence: { type: 'string' },
       severity: { type: 'string', enum: ['info', 'low', 'medium', 'high', 'critical'] },
       category: { type: 'string' }, grounded: { type: 'boolean' }, model_used: { type: 'string' },
-    }, required: ['claim', 'severity', 'grounded'] } },
+    }, required: ['claim', 'severity', 'grounded', 'model_used'] } },
     entities: { type: 'array', items: { type: 'string' }, description: 'named structures/components/endpoints/libs for the graph' },
     new_structures_found: { type: 'array', items: { type: 'string' } },
     summary: { type: 'string' }, notes: { type: 'string' },
-  }, required: ['dimension', 'findings', 'summary'],
+  }, required: ['dimension', 'findings', 'summary', 'entities'],
 }
 
 const SYNTH_SCHEMA = {
