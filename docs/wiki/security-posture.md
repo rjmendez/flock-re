@@ -78,6 +78,27 @@ depends on runtime/backend behavior it's marked *(static-only)*.
 - **Persist survives factory reset** — device serial embedded in a JWT claim, provisioning
   timestamp, and diagnostics history cross the reset boundary.
 
+## Deeper pass II (8-area deep-think swarm)
+- **All 5 public GainSec CVEs reproduce against this dump** — CVE-2025-47822/47823/47824 and
+  59403/59405 each map to concrete code/config in this image (independent confirmation, not just
+  citing the advisory). See [Local attack surface](local-attack-surface.md), [Crash logs](crash-logs.md).
+- **DSP reflash / model-injection surface.** The Hexagon DSP FastRPC skeleton
+  (`libFastRPC_UTF_Forward_skel.so`) exposes ~42 methods across 28 slots including **unvalidated
+  touch-controller firmware reflash**, **custom ML-model injection**, and AFE debug-register access
+  (an "AUE" method group repurposed for CV/ML). Reachable from the app processor *(static-only;
+  parameter validation unconfirmed at runtime)*.
+- **Kernel is a soft target.** kernel 3.18.71 (patch level frozen 2018-06-05) compiles in the
+  futex/netfilter/XFRM/ION subsystems that carry published local-privesc CVEs, with **no SMEP/SMAP
+  and no KASLR** — so any reachable kernel bug is a direct root escalation *(plausibility by
+  version/config, static-only)*. See [Kernel & drivers](kernel.md).
+- **Clean downgrade.** No anti-rollback floor + a bootable 26-month-older backup image = an
+  attacker or a pushed update can revert the device to firmware missing two years of fixes. See
+  [OTA & updates](ota-updates.md).
+- **Reliability telemetry leak (temporal).** Across 6+ months of logs the media-upload auth token
+  never rotated (value redacted), and firmware 2.9.0→2.12.0 cut logged HTTP upload errors ~86% — a
+  measurable backend-reliability signal derived purely from the leaked device logs. See
+  [Crash logs](crash-logs.md).
+
 ## Cross-cutting
 - **Stale software** — patch level frozen 2018-06-05 on a 2025 build. See [Android userland](android-userland.md).
 - **Bulk collection (privacy)** — captures all passing vehicles/bystanders, not just watchlist hits.

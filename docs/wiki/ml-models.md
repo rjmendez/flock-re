@@ -1,7 +1,9 @@
 # ML models
 
 The detectors are shipped as files in the firmware, so the camera's detection capability is
-inspectable. OCR is **not** a model — it's native code (see [ALPR pipeline](alpr-pipeline.md)).
+inspectable. The plate-number **OCR is not on the device at all** — it runs server-side on the
+uploaded crop (see [ALPR pipeline](alpr-pipeline.md)); on-device native code does localization and
+quality scoring only.
 
 ## What ships
 - **6 detector `.tflite` files** (SSD + YOLOv5 families) under `assets/flock_models/`, plus a
