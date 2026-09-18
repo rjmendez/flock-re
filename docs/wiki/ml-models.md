@@ -25,7 +25,7 @@ quality scoring only.
 
 ## Declared classes (from the model label maps)
 - **Live YOLO** (`label_map_all_vehicle.json`): `bicycle`, `licensePlate`, **`person`**, `vehicle`.
-- **SSD** (`label_map.json`, 11): `bicycle, bus, car, cat, dog, licensePlate, motorcycle,` **`person`**`, truck, …`
+- **SSD** (`label_map.json`, 11 classes): `bicycle, bus, car, cat, dog, licensePlate, motorcycle, person, truck, …` — note the **person** class.
 - Per-class gates are asymmetric: `licensePlate` **minQuality 0.98** (only near-perfect reads kept)
   vs `person` **minQuality 0.01** (kept even at low quality). The large model deliberately omits
   the licensePlate class (`vehicle_no_lp` config) — a cascade design.

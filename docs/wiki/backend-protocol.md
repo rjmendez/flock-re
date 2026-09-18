@@ -63,9 +63,9 @@ tasks. Known control actions (reboot, restart-modem) are already public; the arb
 overwrite is broader.
 
 ## Self-provisioning
-A hardcoded fleet API key plus a **MAC-address-only credential endpoint** (`/api/v3/devices/
-credentials`) mint OAuth credentials **with no device proof** — a fleet-wide credential-issuance
-path, not a per-device secret.
+A hardcoded fleet API key plus a **MAC-address-only credential endpoint**
+(`/api/v3/devices/credentials`) mint OAuth credentials **with no device proof** — a fleet-wide
+credential-issuance path, not a per-device secret.
 
 ## Transport security
 - **No certificate pinning** in any examined app (no Network Security Config; `CertificatePinner`
