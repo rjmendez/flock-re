@@ -23,7 +23,7 @@ values redacted** — shape only.
 ## Capture upload (not HTTP)
 - **Not** an HTTP `/v1/sax` multipart endpoint (prior guess corrected). It's a **hand-rolled
   binary protocol over a raw TLS socket** on a dedicated TCP port:
-  `HELLO → UPLOAD_START → UPLOAD_METADATA → UPLOAD_HASH → UPLOAD_SAVE → BYE`, with SHA-256
+  `HELLO → UPLOAD_START → UPLOAD_SIZE → UPLOAD_METADATA_SIZE → UPLOAD_HASH → UPLOAD_SAVE → UPLOAD_COMPLETE → BYE` (message constants from `ProtocolConstants`; a session is bracketed by `UPLOAD_SESSION_START`/`UPLOAD_SESSION_END`), with SHA-256
   file-hash verification.
 
 ## What each capture transmits (from the app data models)

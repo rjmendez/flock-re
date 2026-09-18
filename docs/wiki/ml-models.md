@@ -6,10 +6,11 @@ uploaded crop (see [ALPR pipeline](alpr-pipeline.md)); on-device native code doe
 quality scoring only.
 
 ## What ships
-- **6 detector `.tflite` files** (SSD + YOLOv5 families) under `assets/flock_models/`, plus a
+- **5 detector `.tflite` files** (SSD + YOLOv5 families) under `assets/flock_models/` (7 counting
+  the two legacy models noted below), plus a
   `models.json` manifest and `anchors.json` (1917 SSD anchors). Binary tensor shapes were
   confirmed against the manifest.
-- **`licensePlate` class** appears in 3 of 4 wired detector configs, with a far stricter tracking
+- **`licensePlate` class** appears in at least 3 of the 7 detector/label-map configs, with a far stricter tracking
   gate than other classes (e.g. minQuality 0.98 vs 0.01) — plates must be very clean to register.
 - The largest/most-accurate model (~92 MB, 620 ops) has **no** licensePlate class — consistent
   with a **cascade** design (a big general detector locating, smaller ones specializing).
@@ -25,7 +26,7 @@ quality scoring only.
 
 ## Declared classes (from the model label maps)
 - **Live YOLO** (`label_map_all_vehicle.json`): `bicycle`, `licensePlate`, **`person`**, `vehicle`.
-- **SSD** (`label_map.json`, 11 classes): `bicycle, bus, car, cat, dog, licensePlate, motorcycle, person, truck, …` — note the **person** class.
+- **SSD** (`label_map.json`, 10 classes): `bicycle, bus, car, cat, dog, licensePlate, motorcycle, person, truck, trailer` — note the **person** class.
 - Per-class gates are asymmetric: `licensePlate` **minQuality 0.98** (only near-perfect reads kept)
   vs `person` **minQuality 0.01** (kept even at low quality). The large model deliberately omits
   the licensePlate class (`vehicle_no_lp` config) — a cascade design.
