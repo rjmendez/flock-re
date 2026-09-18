@@ -1,5 +1,8 @@
 # Flock ALPR camera — firmware wiki
 
+> **New here? Start with the [plain-language guide](start-here.md).**
+> It explains what these cameras are, how they read license plates, and what the analysis found — no technical background needed. The pages below are the detailed, code-level notes.
+
 Structural notes on a Flock Safety "Falcon" ALPR camera, from the public DDoSecrets
 firmware leak. Static analysis only. Backend hostnames and all secrets are obfuscated.
 

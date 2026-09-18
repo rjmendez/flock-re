@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 700">
+  <defs>
+    <style>
+      text { font-family: sans-serif; }
+      .title { font-size: 24px; font-weight: bold; }
+      .section-label { font-size: 18px; font-weight: bold; }
+      .step-label { font-size: 14px; }
+      .detail-text { font-size: 12px; }
+      .box-on-device { fill: #e3f2fd; stroke: #1976d2; stroke-width: 2; }
+      .box-cloud { fill: #fff3e0; stroke: #d97706; stroke-width: 2; }
+      .arrow { stroke: #333; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .arrow-dashed { stroke: #666; stroke-width: 1.5; stroke-dasharray: 4,3; fill: none; marker-end: url(#arrowhead-gray); }
+      .divider { stroke: #bbb; stroke-width: 2; stroke-dasharray: 5,5; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#333" />
+    </marker>
+    <marker id="arrowhead-gray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#666" />
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="700" fill="white"/>
+
+  <!-- Title -->
+  <text x="400" y="35" class="title" text-anchor="middle">License Plate Detection: On-Device vs. Cloud</text>
+
+  <!-- Column divider -->
+  <line x1="410" y1="60" x2="410" y2="680" class="divider"/>
+
+  <!-- LEFT COLUMN: DEVICE -->
+  <text x="200" y="75" class="section-label" text-anchor="middle" fill="#1565c0">CAMERA/DEVICE</text>
+  <text x="200" y="95" class="detail-text" text-anchor="middle" fill="#666">(On-device inference)</text>
+
+  <!-- Device Step 1: Capture -->
+  <rect x="80" y="120" width="240" height="50" class="box-on-device" rx="4"/>
+  <text x="200" y="145" class="step-label" text-anchor="middle" font-weight="bold">1. Capture</text>
+  <text x="200" y="162" class="detail-text" text-anchor="middle">Camera streams YUV frames</text>
+
+  <!-- Arrow down -->
+  <path d="M 200 170 L 200 200" class="arrow"/>
+
+  <!-- Device Step 2: Convert -->
+  <rect x="80" y="200" width="240" height="50" class="box-on-device" rx="4"/>
+  <text x="200" y="225" class="step-label" text-anchor="middle" font-weight="bold">2. Convert</text>
+  <text x="200" y="242" class="detail-text" text-anchor="middle">YUV→RGB conversion, scaling</text>
+
+  <!-- Arrow down -->
+  <path d="M 200 250 L 200 280" class="arrow"/>
+
+  <!-- Device Step 3: Detect -->
+  <rect x="80" y="280" width="240" height="60" class="box-on-device" rx="4"/>
+  <text x="200" y="305" class="step-label" text-anchor="middle" font-weight="bold">3. Detect Plate</text>
+  <text x="200" y="322" class="detail-text" text-anchor="middle">TFLite detectors locate plate</text>
+  <text x="200" y="337" class="detail-text" text-anchor="middle" fill="#666">(bounding box)</text>
+
+  <!-- Arrow down -->
+  <path d="M 200 340 L 200 370" class="arrow"/>
+
+  <!-- Device Step 4: Localize &amp; Quality -->
+  <rect x="80" y="370" width="240" height="70" class="box-on-device" rx="4"/>
+  <text x="200" y="395" class="step-label" text-anchor="middle" font-weight="bold">4. Localize &amp; Score</text>
+  <text x="200" y="412" class="detail-text" text-anchor="middle">MSER region proposal, quality</text>
+  <text x="200" y="427" class="detail-text" text-anchor="middle">score, multi-frame tracking</text>
+
+  <!-- Arrow down -->
+  <path d="M 200 440 L 200 470" class="arrow"/>
+
+  <!-- Device Step 5: Encode &amp; Upload -->
+  <rect x="80" y="470" width="240" height="70" class="box-on-device" rx="4"/>
+  <text x="200" y="495" class="step-label" text-anchor="middle" font-weight="bold">5. Encode &amp; Upload</text>
+  <text x="200" y="512" class="detail-text" text-anchor="middle">MP4 video (plate + vehicle)</text>
+  <text x="200" y="527" class="detail-text" text-anchor="middle">Metadata: bbox, confidence, direction</text>
+
+  <!-- RIGHT COLUMN: CLOUD -->
+  <text x="600" y="75" class="section-label" text-anchor="middle" fill="#d97706">CLOUD</text>
+  <text x="600" y="95" class="detail-text" text-anchor="middle" fill="#666">(Server-side processing)</text>
+
+  <!-- Cloud Step 1: OCR -->
+  <rect x="480" y="120" width="240" height="70" class="box-cloud" rx="4"/>
+  <text x="600" y="145" class="step-label" text-anchor="middle" font-weight="bold">1. Read Plate (OCR)</text>
+  <text x="600" y="162" class="detail-text" text-anchor="middle">Character recognition</text>
+  <text x="600" y="177" class="detail-text" text-anchor="middle" fill="#b71c1c" font-weight="bold">⚠ Cloud only</text>
+
+  <!-- Arrow down -->
+  <path d="M 600 190 L 600 220" class="arrow"/>
+
+  <!-- Cloud Step 2: Match -->
+  <rect x="480" y="220" width="240" height="70" class="box-cloud" rx="4"/>
+  <text x="600" y="245" class="step-label" text-anchor="middle" font-weight="bold">2. Match Watchlists</text>
+  <text x="600" y="262" class="detail-text" text-anchor="middle">Compare against hotlists,</text>
+  <text x="600" y="277" class="detail-text" text-anchor="middle">alert on match</text>
+
+  <!-- Arrow down -->
+  <path d="M 600 290 L 600 320" class="arrow"/>
+
+  <!-- Cloud Step 3: Store -->
+  <rect x="480" y="320" width="240" height="60" class="box-cloud" rx="4"/>
+  <text x="600" y="345" class="step-label" text-anchor="middle" font-weight="bold">3. Store &amp; Manage</text>
+  <text x="600" y="362" class="detail-text" text-anchor="middle">Database: sessions, assets, records</text>
+
+  <!-- Upload arrow from device to cloud -->
+  <path d="M 320 505 Q 365 505 480 155" class="arrow-dashed" stroke-width="2.5"/>
+  <text x="390" y="320" class="detail-text" text-anchor="middle" fill="#666" font-weight="bold">Upload</text>
+  <text x="390" y="335" class="detail-text" text-anchor="middle" fill="#666">(video + metadata,</text>
+  <text x="390" y="350" class="detail-text" text-anchor="middle" fill="#666">no plate text)</text>
+
+  <!-- Legend / Key Points -->
+  <g>
+    <text x="40" y="630" class="step-label" font-weight="bold">Key Point:</text>
+    <rect x="40" y="640" width="15" height="15" class="box-on-device" rx="2"/>
+    <text x="65" y="652" class="detail-text">On-device: detection, localization, video encode</text>
+    
+    <rect x="40" y="665" width="15" height="15" class="box-cloud" rx="2"/>
+    <text x="65" y="677" class="detail-text">Cloud: OCR (character read), matching, storage</text>
+  </g>
+</svg>
