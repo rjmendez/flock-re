@@ -25,7 +25,7 @@ User-level installs (no root needed). Versions are what this analysis used; newe
 | **jadx** | 1.5.6 | Download release zip from `github.com/skylot/jadx/releases`, unzip | Decompile the app APKs → Java/Kotlin |
 | **Ghidra** | 12.1.3 | Download from `github.com/NationalSecurityAgency/ghidra/releases`, unzip (needs JDK 17+) | Decompile native `.so` libs (`analyzeHeadless`) |
 | **radare2** | 6.2.x | `github.com/radareorg/radare2` installer, or distro package | Disassembly / triage of ELF binaries |
-| **binwalk** | 2.3.4 (classic) | `pip install --user 'git+https://github.com/ReFirmLabs/binwalk.git@v2.3.4'` (Python 3.11 venv) | Signature scan / carve Qualcomm blobs |
+| **binwalk** | 2.3.4 (classic) | `pip install --user 'git+https://github.com/ReFirmLabs/binwalk.git@v2.3.4'` (installs to user site-packages, Python 3.11; drop `--user` inside a venv) | Signature scan / carve Qualcomm blobs |
 | **android-simg2img** | anestisb/master | `curl -L` the repo tarball, `tar xzf`, `make` | Convert Android sparse images → raw (if present) |
 | **unpack_bootimg.py** | AOSP mkbootimg | Fetch from `android.googlesource.com/platform/system/tools/mkbootimg` | Split `boot`/`recovery` → kernel + ramdisk |
 | **7-Zip (7zz)** | 26.x | Static build from `github.com/ip7z/7zip/releases` | List/extract ext4 trees (`7z l` / `7z x`) |
