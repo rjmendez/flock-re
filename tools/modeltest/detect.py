@@ -18,7 +18,7 @@ import tflite_runtime.interpreter as tfl
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--model", required=True)
-ap.add_argument("--labels", help="label_map json (id->name); else generic class indices")
+ap.add_argument("--labels", help="label_map json with a 'labels' list of {id,name} objects; else generic class indices")
 ap.add_argument("--input", required=True, help="image file or directory")
 ap.add_argument("--conf", type=float, default=0.35)
 a = ap.parse_args()
@@ -45,7 +45,7 @@ for p in files:
     arr = np.asarray(letterbox(im)).astype(np.float32)/255.0
     it.set_tensor(ind["index"], arr[None, ...]); it.invoke()
     out = it.get_tensor(outd["index"])[0]
-    if out.shape[0] < out.shape[-1]: out = out  # (N,ch)
+    if out.shape[0] < out.shape[-1]: out = out.T  # (ch,N) -> (N,ch)
     nc = out.shape[1] - 5
     obj, cls = out[:, 4], out[:, 5:5+nc]
     if obj.max() > 1 or cls.max() > 1: obj, cls = sig(obj), sig(cls)
