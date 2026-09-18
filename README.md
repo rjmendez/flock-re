@@ -31,8 +31,14 @@ statements against the firmware. Hostnames and secrets are obfuscated.
 - **`workflow/flock-deeper-everything.js`** — second-stage deeper pass (userdata/
   media crypto, remaining apps, kernel, OTA, camera, oem/dsp) + a cross-link graph
   spec. Never extracts captured media/personal records.
+- **`workflow/flock-simulated-red-team.js`** — authorization-gated dynamic assessment
+  of an owned simulation across internet/control-plane, LAN/Wi-Fi, radio, optical,
+  accessory/debug, physical/storage, on-device IPC, and operational layers. Uses the
+  Loci swarm for hypotheses, then requires independent evidence for every finding.
 
-The three `workflow/*.js` scripts run with the Claude Code Workflow tool and let anyone
-with the public dump **reproduce and verify** the findings. Edit the CONFIG block at the
-top of each (paths, local model tags) or pass them via `args`. The deep passes are static
-and offline by construction — they never contact a live system or use any credential.
+The `workflow/*.js` scripts run with the Claude Code Workflow tool. The firmware-analysis
+workflows let anyone with the public dump **reproduce and verify** the static findings;
+edit their CONFIG blocks or pass paths/model tags via `args`. The simulated red-team
+workflow instead requires an owned simulation and permits bounded dynamic tests only
+against targets explicitly allowlisted by its authorization gate. It rejects vendor
+domains and public targets by default.
