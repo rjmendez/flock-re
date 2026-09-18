@@ -9,13 +9,20 @@ stay untracked — see `.gitignore`.
 ## Docs
 
 [`docs/wiki/`](docs/wiki/Home.md) — a cross-linked wiki on the firmware's structure
-(hardware, partitions, boot, apps, ALPR pipeline, backend protocol, security posture).
-Hostnames and secrets are obfuscated.
+(hardware, partitions, boot, apps, ALPR pipeline, backend protocol, security posture)
+plus a [claims-vs-evidence](docs/wiki/claims-vs-evidence.md) page testing Flock's public
+statements against the firmware. Hostnames and secrets are obfuscated.
 
 ## Tools
 
 - **`tools/download/bt.py`** — libtorrent fetcher for the dump. Resumable, adds a
   web-seed fallback, verifies piece hashes.
+- **`tools/modeltest/detect.py`** — runs an extracted `.tflite` detector on your own
+  synthetic/public images (never captured data) to characterize what it detects and at
+  what confidence. See `tools/modeltest/README.md`.
+- **`tools/schema/extract_capture_schema.sh`** — reproduces the on-device capture-record
+  schema findings (no plate-text column, detection geometry/class only, no GPS/IMU) from
+  a directory of jadx-decompiled sources. Static, offline, read-only.
 - **`workflow/flock-firmware-peel.js`** — multi-agent workflow: installs the
   toolchain, extracts the partitions in parallel, runs a first-pass decompile.
 - **`workflow/flock-deep-static-re.js`** — deeper static RE across 8 subsystems

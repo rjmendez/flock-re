@@ -8,6 +8,11 @@ just install docs.
 
 - **`tools/download/bt.py`** — libtorrent fetcher for the public dump (resumable, web-seed
   fallback, piece-hash verification).
+- **`tools/modeltest/detect.py`** — runs an extracted `.tflite` detector on your own
+  images (never captured data) to characterize detections/confidence. See
+  `tools/modeltest/README.md`.
+- **`tools/schema/extract_capture_schema.sh`** — reproduces the on-device capture-record
+  schema findings from jadx-decompiled sources. Static, offline, read-only.
 - **`workflow/flock-firmware-peel.js`** — first-pass extraction workflow (partition extract +
   decompile).
 - **`workflow/flock-deep-static-re.js`**, **`workflow/flock-deeper-everything.js`** — the deeper
