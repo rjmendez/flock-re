@@ -53,6 +53,29 @@ readable even though `userdata` is opaque:
 - **`accessory`** (system-control app): stores `auth_password` / `auth_token` as **plaintext
   TEXT** for paired hardware accessories.
 
+### What a capture row actually holds (column-level, code-verified)
+The `assets` table (Room `@Entity` in `flock-amarula`, written by `flock-object`) has **no
+plate-text column**. Its two JSON blobs were traced to their serializer classes:
+- **`metadata_ml`** = JSON of `DetectionResults` → per-object `Detection` records whose fields are
+  **only** `trackId`, `linkedTrackId`, `className` (an object *category* like vehicle/plate — not
+  the plate characters), `confidence`, `quality`, bounding box (`xmin/xmax/ymin/ymax`),
+  `direction`, `selected`. A grep of the whole `ml/lib/models` package for
+  `plate|ocr|text|characters|readResult` returns **zero** hits, and `NativeML` exposes no
+  text-returning JNI method — so **the plate number is never produced or stored on-device.** This
+  is the evidence behind the [server-side OCR](alpr-pipeline.md) finding.
+- **`sensor_metadata`** = JSON of `SensorMetadata` = **camera parameters only** (`iso`, `isNight`,
+  `expMs`, `wbGains`, `bracketType`, full-res width/height, `cropSettings`, `sensorTimestamp`,
+  aspect ratio) — **13 fields, no GPS/lat/lon/IMU.** Per-capture geotagging does **not** happen
+  on-device; the camera carries a single fixed location as a system property
+  (`persist.vendor.flock.phonehome.location.*`) applied at the [upload layer](backend-protocol.md)
+  — consistent with a fixed-mount camera.
+- **Save vs upload defaults:** `MlMetadataSettings` ships `SAVE_ML_METADATA=false` /
+  `UPLOAD_ML_METADATA=true` — detection metadata is **uploaded by default even when not persisted
+  locally** (both remote-config gated).
+
+Reproduce: `tools/schema/extract_capture_schema.sh` (greps the decompiled `Asset`/`Detection`/
+`SensorMetadata` classes and prints the field lists + file:line anchors).
+
 For privacy this project reports schemas/table names only — never row contents. Raw secret
 values are never published.
 
