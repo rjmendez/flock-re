@@ -29,6 +29,7 @@ firmware leak. Static analysis only. Backend hostnames and all secrets are obfus
 
 ## Meta
 - [Prior work & what's new](prior-work.md) — public coverage vs this project's contribution
+- [Claims vs evidence](claims-vs-evidence.md) — Flock statements tested against the firmware
 
 ## Reference
 - [Glossary](glossary.md) — plain-language terms

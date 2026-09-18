@@ -55,6 +55,18 @@ load-balanced fleet). The binary-upload channel authenticates with a **static pe
 that never changed** — and is logged in cleartext (see [Crash logs](crash-logs.md)). The
 `objects` ML app makes no network calls itself; the OTA source host is never logged.
 
+## Backend control (phone-home behaves like a C2 channel)
+The `phonehomeservice` `site/settings` response can **overwrite arbitrary camera settings with no
+allowlist and no response signature**, and there is a `oneShot` task channel — so the backend can
+reconfigure the device (including `leaveWifiEnabled`, which keeps the servicing AP up) and issue
+tasks. Known control actions (reboot, restart-modem) are already public; the arbitrary-setting
+overwrite is broader.
+
+## Self-provisioning
+A hardcoded fleet API key plus a **MAC-address-only credential endpoint**
+(`/api/v3/devices/credentials`) mint OAuth credentials **with no device proof** — a fleet-wide
+credential-issuance path, not a per-device secret.
+
 ## Transport security
 - **No certificate pinning** in any examined app (no Network Security Config; `CertificatePinner`
   present only as unused library code).

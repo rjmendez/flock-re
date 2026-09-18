@@ -1,7 +1,9 @@
 # ML models
 
 The detectors are shipped as files in the firmware, so the camera's detection capability is
-inspectable. OCR is **not** a model — it's native code (see [ALPR pipeline](alpr-pipeline.md)).
+inspectable. The plate-number **OCR is not on the device at all** — it runs server-side on the
+uploaded crop (see [ALPR pipeline](alpr-pipeline.md)); on-device native code does localization and
+quality scoring only.
 
 ## What ships
 - **6 detector `.tflite` files** (SSD + YOLOv5 families) under `assets/flock_models/`, plus a
@@ -21,5 +23,18 @@ inspectable. OCR is **not** a model — it's native code (see [ALPR pipeline](al
 - **Manifest drift:** `models.json` declares a wrong output shape for the large YOLO model
   (a copy-paste bug); harmless unless a consumer trusts the manifest over the binary.
 
+## Declared classes (from the model label maps)
+- **Live YOLO** (`label_map_all_vehicle.json`): `bicycle`, `licensePlate`, **`person`**, `vehicle`.
+- **SSD** (`label_map.json`, 11 classes): `bicycle, bus, car, cat, dog, licensePlate, motorcycle, person, truck, …` — note the **person** class.
+- Per-class gates are asymmetric: `licensePlate` **minQuality 0.98** (only near-perfect reads kept)
+  vs `person` **minQuality 0.01** (kept even at low quality). The large model deliberately omits
+  the licensePlate class (`vehicle_no_lp` config) — a cascade design.
+
+## Empirical test (running the model, not the data)
+The `pico3` detector was run on public/synthetic inputs (never captures): a street photo →
+**person ×30 (0.74) + vehicle ×6 (0.65)**; a two-person photo → **person ×10 (0.55)**; noise/solid
+→ **0** (clean baseline). This independently confirms active person detection. Harness:
+`tools/modeltest/detect.py`.
+
 ## See also
-- [ALPR pipeline](alpr-pipeline.md) · [Apps](apps.md)
+- [ALPR pipeline](alpr-pipeline.md) · [Apps](apps.md) · [Claims vs evidence](claims-vs-evidence.md)

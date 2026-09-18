@@ -1,7 +1,9 @@
 # Partition map
 
-54 partitions, legacy non-A/B Qualcomm layout (`*bak` = redundant backup copies). Grouped
-by role; sizes from this dump.
+54 partitions, legacy non-A/B Qualcomm layout (`*bak` = backup copies, not live A/B slots).
+Note: the `systembk`/`vendorbk` backups here hold a **~26-month-older bootable firmware** that a
+downgrade can install cleanly — see [OTA & updates](ota-updates.md). Grouped by role; sizes from
+this dump.
 
 ## Qualcomm boot & trust — see [Boot chain](boot-chain.md)
 | Partition | Purpose |
