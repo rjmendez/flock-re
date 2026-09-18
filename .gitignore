@@ -57,3 +57,6 @@ venv/
 *.log
 heartbeat
 DONE
+
+# Local agent orchestration (not a repository artifact)
+workflow/

@@ -13,13 +13,9 @@ just install docs.
   `tools/modeltest/README.md`.
 - **`tools/schema/extract_capture_schema.sh`** — reproduces the on-device capture-record
   schema findings from jadx-decompiled sources. Static, offline, read-only.
-- **`workflow/flock-firmware-peel.js`** — first-pass extraction workflow (partition extract +
-  decompile).
-- **`workflow/flock-deep-static-re.js`**, **`workflow/flock-deeper-everything.js`** — the deeper
-  static-RE passes. Run with the Claude Code Workflow tool; static/offline by construction.
 
 Everything else below is standard, publicly available tooling — install it and point the
-workflows/commands at the dump.
+commands at the dump.
 
 ## Third-party tools to install
 
@@ -51,4 +47,4 @@ User-level installs (no root needed). Versions are what this analysis used; newe
 ## Reproduce
 1. `python3 tools/download/bt.py` → fetch the dump.
 2. Install the tools above.
-3. Run the workflows (Workflow tool), or invoke the tools directly per the commands in the table.
+3. Invoke the tools directly per the commands in the table.
