@@ -19,8 +19,9 @@ Wi-Fi uplink in any captured session. The device polls its backend `oneShot` end
 See [Backend protocol](backend-protocol.md).
 
 ## SIM / carrier
-- **eSIM (GSMA RSP)** with a baked-in **Twilio bootstrap/fallback profile** auto-activated
-  fleet-wide by a connectivity watchdog (`lte_check`).
+- **eSIM (GSMA RSP)** with a baked-in **Twilio bootstrap/fallback profile**. A connectivity
+  watchdog (`lte_check`) switches to it as a **fallback after ~10 min of detected LTE loss** — not
+  a default fleet-wide activation.
 - On this unit `mcfg` (carrier config) and `fsg` (normally IMEI/MEID/NV) are **byte-for-byte
   zero** — no carrier profile or device-unique identifier recoverable at rest.
 

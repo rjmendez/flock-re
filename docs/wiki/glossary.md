@@ -16,7 +16,8 @@ Plain-language terms used across the wiki.
   proving the device may talk to the backend.
 - **TFLite** — TensorFlow Lite, the on-device neural-network format. See [ML models](ml-models.md).
 - **MSER** — Maximally Stable Extremal Regions, a classic computer-vision technique used here
-  for on-device character reading. See [ALPR pipeline](alpr-pipeline.md).
+  for on-device plate **region detection / quality scoring** — *not* character reading. The actual
+  plate-number OCR is server-side. See [ALPR pipeline](alpr-pipeline.md).
 - **Baseband / MPSS** — the cellular modem's own firmware/processor. See [Cellular & location](cellular-and-location.md).
 - **eSIM** — an embedded SIM (no physical card) for cellular service.
 

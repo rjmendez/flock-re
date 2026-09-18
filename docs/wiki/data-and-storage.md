@@ -57,9 +57,10 @@ readable even though `userdata` is opaque:
 The `assets` table (Room `@Entity` in `flock-amarula`, written by `flock-object`) has **no
 plate-text column**. Its two JSON blobs were traced to their serializer classes:
 - **`metadata_ml`** = JSON of `DetectionResults` → per-object `Detection` records whose fields are
-  **only** `trackId`, `linkedTrackId`, `className` (an object *category* like vehicle/plate — not
-  the plate characters), `confidence`, `quality`, bounding box (`xmin/xmax/ymin/ymax`),
-  `direction`, `selected`. A grep of the whole `ml/lib/models` package for
+  `trackId`, `linkedTrackId`, `linkedDetectionId`, `className` (an object *category* like
+  vehicle/plate — not the plate characters), `confidence`, `quality`, bounding box
+  (`xmin/xmax/ymin/ymax`), `direction`, `selected` — **no plate-text field**. A grep of the whole
+  `ml/lib/models` package for
   `plate|ocr|text|characters|readResult` returns **zero** hits, and `NativeML` exposes no
   text-returning JNI method — so **the plate number is never produced or stored on-device.** This
   is the evidence behind the [server-side OCR](alpr-pipeline.md) finding.

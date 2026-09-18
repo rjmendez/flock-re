@@ -17,7 +17,8 @@ split across separate apps, plus supporting services.
 | Capture DB | `<vendor>.amarula` app | Owns the ALPR capture DB; an exported receiver exfils it on a broadcast |
 | Factory test | `<vendor>.assembly-validator` | Manufacturing test harness — ships in the **production** image with open exported test services |
 
-- **All 15 Flock apps ship `android:debuggable="true"`** in production; a shared library carries a
+- **Nearly every Flock app ships `android:debuggable="true"`** in production (found in ~19 of the
+  ~20 apps); a shared library carries a
   default API key (value redacted). See [Local attack surface](local-attack-surface.md).
 
 - Detection app version in this dump: 6.35.x; native code is 32-bit ARM (`armeabi-v7a`).
