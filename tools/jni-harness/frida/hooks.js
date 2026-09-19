@@ -20,8 +20,8 @@
  * does not need to be re-derived from scratch. Attach with:
  *   frida -U -l hooks.js -f <package.name.of.flock-object>
  * (package name and the real network-egress method identified from
- * jadx-out were not filled in here because they were never validated
- * against a live process this session.)
+ * jadx-out were not filled in here because they were not validated
+ * against a live process in the current harness run.)
  */
 
 'use strict';
@@ -50,7 +50,7 @@
 // TODO (untested): the real NativeML class name/signatures were captured
 // via static analysis in re/deep/native-ml/findings.json and the JNI
 // symbol table, but never re-validated live because the class never
-// loaded on any bootable image this session.
+// loaded on any bootable image in the current harness run.
 //
 // Java.perform(function () {
 //   var NativeML = Java.use('com.flock.<package>.NativeML');
@@ -68,7 +68,7 @@
 // });
 
 // --- Defense-in-depth network isolation (independent of these hooks) --
-// Documented but not applied to a live AVD this session because no AVD
+// Documented but not applied to a live AVD in this run because no AVD
 // ever reached a state where the app process (and thus a real egress
 // path) existed to isolate. If revisited:
 //   adb shell "iptables -I OUTPUT -j DROP; iptables -I OUTPUT -o lo -j ACCEPT"
