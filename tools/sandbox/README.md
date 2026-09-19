@@ -60,7 +60,7 @@ python3 upload_client.py --port 8443 --fuzz                # attack the parser
 ## Emulator + Frida (provided; correction below — `/dev/kvm` is NOT actually required)
 **Correction**: this section originally assumed a hardware-accelerated (`/dev/kvm`) host was
 required and that these scripts were only "syntax-checked, not run." That assumption is
-wrong — `tools/jni-harness/README.md`'s Session 4 got a real, genuinely-ARM Android guest
+wrong — `tools/jni-harness/README.md`'s validated ARM path got a real, genuinely-ARM Android guest
 fully booted and `adb`-connected on this exact WSL2 box with no `/dev/kvm` at all (by
 invoking the SDK's arch-specific `qemu-system-armel-headless` binary directly instead of the
 `emulator` launcher, which imposes an unrelated architecture restriction of its own), and
