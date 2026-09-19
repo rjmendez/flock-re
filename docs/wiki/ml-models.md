@@ -37,5 +37,16 @@ The `pico3` detector was run on public/synthetic inputs (never captures): a stre
 → **0** (clean baseline). This independently confirms active person detection. Harness:
 `tools/modeltest/detect.py`.
 
+Separately, a dynamic-analysis harness ran the same class of extracted `.tflite` model inside a
+genuinely-ARM-emulated Android guest — not just a standalone Python/`tflite_runtime` script:
+`MLM-2854-pico3-best-fp16.tflite` reproducibly detected 6 `vehicle` boxes at confidence 0.348 on a
+synthetic gradient image. This corroborates the "real, working detector" claim with a second,
+independent verification method closer to the camera's real execution environment — a live ART
+process invoking the model through the app's own code path — rather than only a bare Python
+harness. This harness's network egress was verified live-blocked throughout
+(`iptables -P OUTPUT DROP`), and, as above, no captured/real device data was used; the input was
+procedurally generated. Cite: `deep/swarm/jni-harness/FINDINGS.md`. Reproduce:
+`tools/jni-harness/README.md`.
+
 ## See also
 - [ALPR pipeline](alpr-pipeline.md) · [Apps](apps.md) · [Claims vs evidence](claims-vs-evidence.md)

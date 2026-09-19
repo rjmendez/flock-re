@@ -58,7 +58,13 @@ depends on runtime/backend behavior it's marked *(static-only)*.
 - **Static upload credential logged in cleartext.** A per-device client-auth token that
   authenticates every media upload is written to the logs in full ~**3,906 times** over 6+
   months, at ordinary log level — so it ships inside every crash pack (which are exposed via
-  an unauthenticated endpoint, CVE-2025-59403). Unreported publicly. See [Crash logs](crash-logs.md).
+  an unauthenticated endpoint, CVE-2025-59403). Unreported publicly. That same static token
+  (`CoreValues.authToken`) is reused, unchanged, as the `X-AUTH-TOKEN` bearer for the phone-home/
+  telemetry REST API (`api/v1/camera/status`, `heartbeat`, `oneShot`, `settings`, and
+  `api/v1/site/settings`) — so one leaked token (e.g. pulled from a crash-pack log) lets a holder
+  forge that specific camera's live telemetry, location, health status, and remote
+  settings, not just impersonate its media uploads. See [Crash logs](crash-logs.md),
+  [Backend protocol](backend-protocol.md).
 - **Other secrets in logs** — password strings and live LTE cell-tower IDs (`modemInfo.txt`).
 
 ## Deeper pass (surface swarm)
@@ -76,7 +82,14 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   `ApnHelper` APN-injection path with no user consent; Sierra modem firmware updates lack
   signature/rollback checks. See [Cellular & location](cellular-and-location.md).
 - **Persist survives factory reset** — device serial embedded in a JWT claim, provisioning
-  timestamp, and diagnostics history cross the reset boundary.
+  timestamp, and diagnostics history cross the reset boundary. Now confirmed by code path, not
+  just by inspecting the persist image: the two reset triggers — a default-off "Rescue Party"
+  watchdog escalation, and an always-on, ungated backend `factory_reset` one-shot command — both
+  only ever broadcast the standard Android `FACTORY_RESET` intent, which this device's
+  `recovery.fstab` never maps to a `/persist` volume. So the Auth0 client credential and cached
+  bearer JWT on `/persist` survive by structural omission (no fstab entry, no wipe-code string
+  reference), not by any deliberate persist-wipe carve-out being skipped. See
+  [Data & storage](data-and-storage.md).
 
 ## Deeper pass II (8-area deep-think swarm)
 - **All 5 public GainSec CVEs reproduce against this dump** — CVE-2025-47822/47823/47824 and

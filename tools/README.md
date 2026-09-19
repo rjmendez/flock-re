@@ -13,6 +13,10 @@ just install docs.
   `tools/modeltest/README.md`.
 - **`tools/schema/extract_capture_schema.sh`** — reproduces the on-device capture-record
   schema findings from jadx-decompiled sources. Static, offline, read-only.
+- **`tools/jni-harness/`** — emulated/offline dynamic-analysis harness: runs the real extracted
+  TFLite models against synthetic input (working), plus a prepared-but-blocked AVD/Frida path
+  for the native JNI library (blocked on an ABI gap — no ARM-translation-capable emulator image
+  exists for the app's armeabi-v7a-only libs). See `tools/jni-harness/README.md`.
 
 Everything else below is standard, publicly available tooling — install it and point the
 commands at the dump.
