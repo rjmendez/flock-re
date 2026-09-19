@@ -36,13 +36,54 @@ data) shows:
   2025‑07 → 2026‑01 — gzip (`1f8b08`), i.e. crash/diagnostic packs, **not yet opened**.
 - **Video metadata:** each MP4 carries a `moov` with `mvhd` **creation_time** and a
   `meta`→`keys`/`ilst` tag block + handler info; the sampled file had **no in-file GPS**
-  (`©xyz`/`loci`) atom. Geolocation travels out-of-band in the [upload `Location` record](backend-protocol.md),
+  dedicated location-metadata atom. Geolocation travels out-of-band in the [upload `Location` record](backend-protocol.md),
   not the video container. (One sample; values redacted.)
 
 ## More partitions
 - **`persist` (32 MiB):** device identity/settings, survives factory reset. Holds the OAuth
   client credential + token as **plaintext JSON** under `/persist/<vendor>/auth0/`. No SQLite or
-  shared_prefs here; the DRM/keystore skeleton dirs are empty on this unit.
+  shared_prefs here; the DRM/keystore skeleton dirs are empty on this unit. See below for the
+  reset code paths that explain *why* this survives.
+
+## Factory reset / decommission: what survives
+There is no bespoke Flock "RMA wipe" or decommission service anywhere in this firmware. Exactly
+two code paths ever trigger a reset, and both simply broadcast the stock AOSP
+`android.intent.action.FACTORY_RESET` intent — funneling into the OS's own `MasterClearReceiver` /
+`RecoverySystem.rebootWipeUserData()` machinery, not a Flock-reimplemented wipe routine:
+1. **Automatic "Rescue Party" watchdog escalation** (`RescueActionHandler.factoryReset()`) — gated
+   by `persist.vendor.flock.rescue_party.factory_reset_enabled`, shipped `false` in the extracted
+   vendor `build.prop` (though remotely re-enablable as a pushed camera setting).
+2. **Backend-issued `factory_reset` one-shot command** (`OneShotHandler.handleFactoryReset()`),
+   delivered over the same phone-home one-shot channel referenced in [Backend
+   protocol](backend-protocol.md)'s "Backend control" section — this one has **no property gate at
+   all**, so any `factory_reset` one-shot the backend sends unconditionally wipes the device.
+
+Per this device's own `recovery.fstab`, the wipe flow only knows how to format `/system`,
+`/cache`, `/vendor`, `/data` (userdata), `/boot`, `/recovery`, `/misc`, and the `*bk` backup
+partitions — there is **no `/persist` entry at all**, and the recovery binary's wipe-command
+strings (`wipe_data`, `wipe_cache`, `prompt_and_wipe_data`) have no `/persist` string anywhere
+near them. `/persist` is structurally out of scope for every reset path this firmware implements.
+
+**Concrete effect:**
+- The Amarula ALPR capture DB (`/data/user/0/.../databases/{live-media-db,media-db}` + WAL files,
+  and the world-readable export copy at `/data/media/logs/media-db`) lives under `/data` and **is
+  wiped** by a factory reset.
+- The cached Auth0 client credential (`auth0_cred`) and bearer JWT (`auth0_token`) at
+  `/persist/flock/auth0/` — the exact material needed to make a decommissioned device impersonate
+  a still-provisioned camera to the backend — are **not wiped** by any reset path. This confirms,
+  by code path (not just by inspecting the persist image contents), the "survives factory reset"
+  framing above.
+
+**Separate wipe surface:** a `reformat` one-shot command (distinct from `factory_reset`) can
+additionally wipe a native-HAL-managed "media partition" via
+`PeripheralController.reformatMediaPartition()` (AIDL transaction 15, gated by
+`vendor.flock.media.format`). Nothing in the `factory_reset` path calls this, so a factory reset
+alone would not necessarily purge that separately-staged media store — a second, explicit
+`reformat` one-shot (`media: true`) would be required. The native peripheral-HAL implementation
+wasn't present in this dump, so the exact scope of "media partition" isn't independently
+confirmed here — flagged as an open follow-up rather than asserted as fact.
+
+Evidence: `deep/swarm/factory-reset-data-remnants/FINDINGS.md`.
 
 ## On-device databases (schemas recovered from app code, not from userdata)
 The apps use Room (SQLite); the `CREATE TABLE` SQL is embedded in the app code, so schemas are
