@@ -117,6 +117,23 @@ depends on runtime/backend behavior it's marked *(static-only)*.
 - **Bulk collection (privacy)** — captures all passing vehicles/bystanders, not just watchlist hits.
 - **Model IP** — production ML detectors ship unencrypted and unobfuscated. See [ML models](ml-models.md).
 
+## Prioritized attack chains (reporting update)
+- **Chain A (highest priority): local app -> credential disclosure -> upload/telemetry impersonation -> transport interception risk.**
+  - Runtime disclosure surfaces: exported `SettingsContentProvider` and plaintext token logging.
+  - Protocol amplifier: weak endpoint-verification/TLS-context handling in upload transport paths.
+  - Operational impact: device identity replay and forged camera-origin traffic become materially easier.
+- **Chain B: local app -> unauthenticated database export -> metadata staging -> follow-on abuse.**
+  - Runtime disclosure surface: exported `DatabaseExportReceiver`.
+  - Impact: sensitive metadata exfiltration and attacker visibility expansion.
+- **Chain C: local app -> world-writable root daemon socket -> control/heartbeat injection.**
+  - Privilege-boundary surface: `reaperd` socket permissions and unauthenticated message framing.
+  - Impact: local process can attempt root-service control-plane manipulation.
+
+### Hardening order
+1. Enforce strict transport authentication (correct SSL context usage + endpoint verification).
+2. Close credential leaks (provider export/permission model and token logging).
+3. Restrict unauthenticated local export/control surfaces (`DatabaseExportReceiver`, `reaperd` socket).
+
 ## Boundaries of this project
 No contact with any live service; no credential used against any endpoint (validity untested by
 design); captured media/personal records never extracted. For education and responsible
