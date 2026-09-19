@@ -62,7 +62,7 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   (`CoreValues.authToken`) is reused, unchanged, as the `X-AUTH-TOKEN` bearer for the phone-home/
   telemetry REST API (`api/v1/camera/status`, `heartbeat`, `oneShot`, `settings`, and
   `api/v1/site/settings`) — so one leaked token (e.g. pulled from a crash-pack log) lets a holder
-  forge or read that specific camera's live telemetry, location, health status, and remote
+  forge that specific camera's live telemetry, location, health status, and remote
   settings, not just impersonate its media uploads. See [Crash logs](crash-logs.md),
   [Backend protocol](backend-protocol.md).
 - **Other secrets in logs** — password strings and live LTE cell-tower IDs (`modemInfo.txt`).

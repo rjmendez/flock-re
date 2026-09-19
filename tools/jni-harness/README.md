@@ -99,19 +99,27 @@ app run. It stops on `NoSuchMethodError` for `ContentResolver`'s 4-arg
 from this OS, called from at least 3 sites in the app (`CameraSettings.kt:319`, `:569`,
 `ApnHelper.kt:317`; everywhere else already uses the always-valid 5-arg legacy form).
 
-### `frida/coreValues_hook.js` — real, executed, verified (not a skeleton)
-Rather than inventing synthetic data, this hooks `CameraSettings.getCoreValuesFromContentProvider`
-to return the app's **own existing** fallback (`defaultCoreValues`, a static field already
-in the app for "no data available"), short-circuiting the missing-method call entirely:
+### `frida/coreValues_hook.js` — Session 5 caller-level wrapper hooks
+Both known API-26-only crash paths are now bypassed at app-level wrappers (not by patching absent
+framework APIs):
+- `CameraSettings.getCoreValues(Context)` returns static `defaultCoreValues` fallback.
+- `ApnHelper.setApn(String)` is short-circuited before the line-317 APN query path. The enclosing
+  method at that site is `setPreferredAPN(int id): boolean` (Frida fallback hook included).
+
+Run it against the known-good Frida pairing for this target (client/server `16.1.4`):
+```bash
+frida -U -f com.flocksafety.camera -l tools/jni-harness/frida/coreValues_hook.js
 ```
-[HOOK] defaultCoreValues = CoreValues(serialNumber=cereal, authToken=dirtymartini,
-statusUrl=https://dev-gimlet.flocksafety.com/, ...)
+Expected signal:
 ```
-(Confirmed real, not fabricated evidence — and a minor finding in its own right: those are
-literal joke placeholder strings shipped in the production APK's fallback path, not a live
-credential.) Execution proceeds past that call and crashes on the *next* affected call site
-(`getSettingsFromContentProvider`, inside a Kotlin coroutine's generated `invokeSuspend` —
-messier to hook safely than a plain method; not yet attempted).
+[HOOK] CameraSettings.getCoreValues(Context) wrapper hook active.
+[HOOK] ApnHelper.setApn(String) wrapper hook active.
+[HOOK] getCoreValues(android.content.Context) called - short-circuiting CameraSettings wrapper before API26-only ContentResolver.query(Uri,String[],Bundle,CancellationSignal).
+[HOOK] defaultCoreValues = CoreValues(serialNumber=cereal, authToken=dirtymartini, ...)
+[HOOK] setApn(java.lang.String) called - bypassing APN wrapper before API26-only ContentResolver.query(Uri,String[],Bundle,CancellationSignal). apnName=<value>
+```
+This keeps the workaround narrow and reproducible: caller-level app hooks only, no synthetic data,
+and no framework-method monkeypatching.
 
 **Frida version note**: current Frida (17.18.0) SIGSEGVs its own injected agent on attach to
 this API 25/Nougat ART process (confirmed via `adb logcat` tombstone). An older release,
