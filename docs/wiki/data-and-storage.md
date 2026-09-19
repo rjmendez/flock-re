@@ -36,7 +36,7 @@ data) shows:
   2025‑07 → 2026‑01 — gzip (`1f8b08`), i.e. crash/diagnostic packs, **not yet opened**.
 - **Video metadata:** each MP4 carries a `moov` with `mvhd` **creation_time** and a
   `meta`→`keys`/`ilst` tag block + handler info; the sampled file had **no in-file GPS**
-  (`©xyz`/`loci`) atom. Geolocation travels out-of-band in the [upload `Location` record](backend-protocol.md),
+  dedicated location-metadata atom. Geolocation travels out-of-band in the [upload `Location` record](backend-protocol.md),
   not the video container. (One sample; values redacted.)
 
 ## More partitions
