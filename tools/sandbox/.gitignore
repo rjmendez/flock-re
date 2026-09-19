@@ -1,0 +1,3 @@
+server.pem
+*.tmp
+__pycache__/
