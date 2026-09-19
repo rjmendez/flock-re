@@ -23,16 +23,16 @@ python3 tflite/run_tflite_models.py   # needs numpy<2, pillow, tflite-runtime �
 Confirmed reproducible: `MLM-2854-pico3-best-fp16.tflite` on the synthetic gradient image
 consistently detects 6 `vehicle` boxes at confidence 0.348.
 
-## Component B — AVD/ART path — real app execution achieved (Session 4)
+## Component B — AVD/ART path — real app execution achieved (validated setup)
 
-**Status as of Session 4: real, unmodified `flock-object` app code runs on genuinely-ARM
+**Validated status: real, unmodified `flock-object` app code runs on genuinely-ARM
 hardware-emulated Android, with a real, verified Frida hook.** It is not yet reaching
 `NativeML` — it stops on an enumerable set of Android-O+-only framework API calls this
 older OS doesn't have — but every previous "fundamental" blocker below was individually
 solved. Read bottom-up if you want the history; the short version, if you just want to
-reproduce it, is in "Reproducing Session 4's environment" below.
+reproduce it, is in "Reproducing the validated environment" below.
 
-Sessions 1-3 (superseded, kept for the record): `armeabi-v7a`-only native libs made the
+Earlier attempts (superseded, kept for the record): `armeabi-v7a`-only native libs made the
 standard x86/x86_64/arm64-v8a emulator images unusable (no ARM translation, no 32-bit
 personality — `INSTALL_FAILED_NO_MATCHING_ABIS`); a genuine `armeabi-v7a` image was found
 (`system-images;android-25;google_apis;armeabi-v7a`, via `sdkmanager --list
@@ -41,9 +41,9 @@ architecture at all (`FATAL | CPU Architecture 'arm' is not supported by the QEM
 emulator`). **Correction for anyone reusing this writeup**: a sibling effort
 (`tools/sandbox/`, PR #8) framed the AVD path as blocked by "no `/dev/kvm`" (acceleration) —
 that was already wrong (TCG boots fine, just slowly), and turned out to be the wrong layer
-entirely once Session 4 found the real fix below.
+entirely once the validated setup found the real fix below.
 
-### Session 4: the actual fix
+### Validated setup: the actual fix
 The architecture gate above lives **only** in the top-level `emulator` launcher — the
 arch-specific `qemu-system-armel(-headless)` binary it normally delegates to (already
 shipped inside the same emulator package) has no such check and boots ARM guests fine when
@@ -88,7 +88,7 @@ From there, three more layers, each with a standard, documented fix:
 before running any of this: `adb root` + on-device `iptables -P OUTPUT DROP` with a
 loopback-only exception, verified live (a real `ping` returns `Operation not permitted`).
 This matters because nothing about the host WSL/emulator stack blocks real outbound network
-access by default — confirmed by this session's own legitimate outbound calls (Google's
+access by default — confirmed by legitimate outbound calls during environment setup (Google's
 sdkmanager repo, Ubuntu's apt mirrors, `android.googlesource.com`).
 
 With all three layers fixed, the real, only-cosmetically-modified app installs and runs:
@@ -99,27 +99,26 @@ app run. It stops on `NoSuchMethodError` for `ContentResolver`'s 4-arg
 from this OS, called from at least 3 sites in the app (`CameraSettings.kt:319`, `:569`,
 `ApnHelper.kt:317`; everywhere else already uses the always-valid 5-arg legacy form).
 
-### `frida/coreValues_hook.js` — Session 5 caller-level wrapper hooks
-Both known API-26-only crash paths are now bypassed at app-level wrappers (not by patching absent
-framework APIs):
-- `CameraSettings.getCoreValues(Context)` returns static `defaultCoreValues` fallback.
-- `ApnHelper.setApn(String)` is short-circuited before the line-317 APN query path. The enclosing
-  method at that site is `setPreferredAPN(int id): boolean` (Frida fallback hook included).
+### `frida/coreValues_hook.js` - Wave 6 caller-level wrapper hooks
+The narrow Wave 6 loop keeps the workaround at app-level wrappers rather than patching absent
+framework APIs. The active bypass stack now includes:
+- `CameraSettings.getSettingsFromContentProvider(Context)` / legacy `getCoreValues*` wrappers to bypass API-26 `ContentResolver.query(..., Bundle, CancellationSignal)` call sites.
+- `FlockBootstrapperActivity.onStart()` API<26 compatibility path that replaces `startForegroundService(...)` with `startService(...)`.
+- `FlockForegroundService.onCreate()` / `onStartCommand(...)` compatibility hooks to skip API-26 notification/bootstrap paths on API 25.
 
 Run it against the known-good Frida pairing for this target (client/server `16.1.4`):
 ```bash
-frida -U -f com.flocksafety.camera -l tools/jni-harness/frida/coreValues_hook.js
+frida -U -f com.flocksafety.android.objects -l tools/jni-harness/frida/coreValues_hook.js
 ```
 Expected signal:
 ```
-[HOOK] CameraSettings.getCoreValues(Context) wrapper hook active.
-[HOOK] ApnHelper.setApn(String) wrapper hook active.
-[HOOK] getCoreValues(android.content.Context) called - short-circuiting CameraSettings wrapper before API26-only ContentResolver.query(Uri,String[],Bundle,CancellationSignal).
-[HOOK] defaultCoreValues = CoreValues(serialNumber=cereal, authToken=dirtymartini, ...)
-[HOOK] setApn(java.lang.String) called - bypassing APN wrapper before API26-only ContentResolver.query(Uri,String[],Bundle,CancellationSignal). apnName=<value>
+[HOOK] CameraSettings wrapper hook active for: ...
+[HOOK] getSettingsFromContentProvider(android.content.Context) called - narrow Wave 6 caller-side bypass before API26+ ContentResolver.query(Uri,String[],Bundle,CancellationSignal).
+[HOOK] FlockBootstrapperActivity.onStart compatibility hook active - replacing API26 startForegroundService() with startService().
+[HOOK] FlockForegroundService.onStartCommand(...) bypassed before scheduled-thread startup on API<26.
 ```
-This keeps the workaround narrow and reproducible: caller-level app hooks only, no synthetic data,
-and no framework-method monkeypatching.
+This keeps the workaround narrow and reproducible: app-level caller wrappers and targeted
+runtime compatibility hooks only, no synthetic data, and no framework method monkeypatching.
 
 **Frida version note**: current Frida (17.18.0) SIGSEGVs its own injected agent on attach to
 this API 25/Nougat ART process (confirmed via `adb logcat` tombstone). An older release,
@@ -130,12 +129,12 @@ injection against this target; the newer CLI is fine for everything else (`frida
 interception) remains prepared for once execution reaches that far.
 
 Full narrative, every log, and the "if picking this back up" next steps:
-dump's `FINDINGS.md`, "Session 4" section.
+dump's `FINDINGS.md`, in the section covering the validated setup.
 
 ## Manifest patch tooling (`manifest-patch/`)
 
 Small, reusable scripts used to make the one narrowly-authorized deviation documented in
-`FINDINGS.md` (Session 3): lowering `flock-object.apk`'s `minSdkVersion` from 27 to 25 to get
+`FINDINGS.md` (earlier attempts): lowering `flock-object.apk`'s `minSdkVersion` from 27 to 25 to get
 past an installer SDK-version gate, and nothing else.
 
 - `extract_manifest.py` — pulls the raw compiled `AndroidManifest.xml` bytes out of an APK's
@@ -143,7 +142,7 @@ past an installer SDK-version gate, and nothing else.
 - `patch_min_sdk.py` — parses the real Android binary-XML (AXML) chunk structure
   (`ResChunk_header` / `ResXMLTree_node` / `ResXMLTree_attrExt` / `ResXMLTree_attribute`) to
   find the `<uses-sdk android:minSdkVersion>` attribute's raw 4-byte integer value and
-  overwrites *only* those 4 bytes, asserting the expected old value first. **Session 4 update**:
+  overwrites *only* those 4 bytes, asserting the expected old value first. **Validated setup update**:
   this alone is enough to pass the install-time SDK gate, but not enough to actually run on
   this specific APK — the compiled dex uses a bytecode format version this old ART doesn't
   parse at all, which only the full `apktool d`/edit/`apktool b` round-trip fixes (it
@@ -151,7 +150,7 @@ past an installer SDK-version gate, and nothing else.
   this APK's adaptive-icon resources (`<adaptive-icon> elements require a sdk version of at
   least 26`) — resolved by deleting `res/mipmap-anydpi/{ic_launcher,ic_launcher_round}.xml`
   (the app already ships full legacy PNG icons at every density as a fallback; a
-  resource-only, zero-logic change). See `FINDINGS.md` Session 4 for the full recipe
+  resource-only, zero-logic change). See the validated-setup section in `FINDINGS.md` for the full recipe
   including the required `zipalign -p 4` pass. Keep this byte-patch script around regardless
   — it's the right tool for APKs that don't also need dex desugaring.
 - `rebuild_apk.py` — copies every other zip entry from the original APK byte-for-byte (same
