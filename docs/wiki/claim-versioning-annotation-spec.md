@@ -16,7 +16,7 @@ Security research framework for tracking claim supersessions, amendments, retrac
 | revision_id | string | YES | `ORDERING_BYPASS_001.r2` | Append `.r{N}` for revision count; r1 = initial |
 | prior_revision | string | NO | `ORDERING_BYPASS_001.r1` | NULL for initial; links to previous revision record |
 | change_type | enum | YES | `correction`, `confidence-downgrade` | See taxonomy section below |
-| effective_cycle | integer | YES | `1` | Wave number when revision was issued (1=initial, 2+=post-transfer-validation) |
+| effective_cycle | integer | YES | `1` | Revision-cycle number when revision was issued (1=initial, 2+=post-transfer-validation) |
 | status | enum | YES | `RETAINED`, `DOWNGRADED`, `SUPPRESSED`, `FALSIFIED` | Publication disposition per disagreement matrix |
 | confidence_prior | float | NO | `0.90` | Confidence score of prior revision (anchoring change magnitude) |
 | confidence_current | float | YES | `0.75` | Confidence score effective with this revision |
@@ -26,7 +26,7 @@ Security research framework for tracking claim supersessions, amendments, retrac
 | line_ref_updated | text | NO | `docs/wiki/non-android-fuzz-findings.md line 12` | Where claim text was modified |
 | integrity_check | string | YES | `PASS` | PASS/AUDIT_REQUIRED; see validation rules |
 | timestamp_issued | string | YES | `2026-09-20T14:32:15Z` | ISO 8601 UTC of publication |
-| author_id | string | YES | `security_cycle_1_ops` | Operator/wave that issued revision |
+| author_id | string | YES | `security_cycle_1_ops` | Operator/cycle that issued revision |
 
 ---
 
