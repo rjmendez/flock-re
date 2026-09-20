@@ -16,7 +16,7 @@ Security research framework for tracking claim supersessions, amendments, retrac
 | revision_id | string | YES | `ORDERING_BYPASS_001.r2` | Append `.r{N}` for revision count; r1 = initial |
 | prior_revision | string | NO | `ORDERING_BYPASS_001.r1` | NULL for initial; links to previous revision record |
 | change_type | enum | YES | `correction`, `confidence-downgrade` | See taxonomy section below |
-| effective_wave | integer | YES | `1` | Wave number when revision was issued (1=initial, 2+=post-transfer-validation) |
+| effective_cycle | integer | YES | `1` | Wave number when revision was issued (1=initial, 2+=post-transfer-validation) |
 | status | enum | YES | `RETAINED`, `DOWNGRADED`, `SUPPRESSED`, `FALSIFIED` | Publication disposition per disagreement matrix |
 | confidence_prior | float | NO | `0.90` | Confidence score of prior revision (anchoring change magnitude) |
 | confidence_current | float | YES | `0.75` | Confidence score effective with this revision |
@@ -26,7 +26,7 @@ Security research framework for tracking claim supersessions, amendments, retrac
 | line_ref_updated | text | NO | `docs/wiki/non-android-fuzz-findings.md line 12` | Where claim text was modified |
 | integrity_check | string | YES | `PASS` | PASS/AUDIT_REQUIRED; see validation rules |
 | timestamp_issued | string | YES | `2026-09-20T14:32:15Z` | ISO 8601 UTC of publication |
-| author_id | string | YES | `security_wave_1_ops` | Operator/wave that issued revision |
+| author_id | string | YES | `security_cycle_1_ops` | Operator/wave that issued revision |
 
 ---
 
@@ -36,7 +36,7 @@ Seven canonical change types capturing all claim mutations:
 
 | Change type | When applied | Confidence effect | Status allowed | Example rationale |
 |---|---|---|---|---|
-| **initial** | First wave, finding is published | — | RETAINED | Claim originates; wave 1 discovery |
+| **initial** | Initial cycle, finding is published | — | RETAINED | Claim originates; cycle 1 discovery |
 | **correction** | Factual error in prior phrasing (not evidence-driven) | No change | RETAINED | Mock vs real server log quote was misinterpreted; phrasing corrected |
 | **caveat-strengthening** | Add qualification without changing confidence | No change | RETAINED | Add: "ordering may be app-layer; protocol layer unknown" |
 | **confidence-upgrade** | New evidence supports stronger claim | +0.05 to +0.20 | RETAINED | Negative control NC3 passed; real backend exhibits same behavior |
@@ -71,10 +71,10 @@ Seven canonical change types capturing all claim mutations:
 - SUPPRESSED: confidence becomes 0.0; claim not published in main findings table
 - FALSIFIED: confidence becomes 0.0; moved to "Mock-only bugs" section with explicit contradiction evidence
 
-**Rule 5: Wave sequencing**
-- `effective_wave` is monotonically non-decreasing across revision chain
-- Wave 1 = initial publication; Wave 2+ = post-transfer-validation updates only
-- No back-dating revisions to prior waves
+**Rule 5: Revision-cycle sequencing**
+- `effective_cycle` is monotonically non-decreasing across revision chain
+- Cycle 1 = initial publication; Cycle 2+ = post-transfer-validation updates only
+- No back-dating revisions to prior revision cycles
 
 **Rule 6: Evidence delta must anchor confidence changes**
 - If `change_type` is `confidence-upgrade` or `confidence-downgrade`, `evidence_delta` MUST cite new artifact
@@ -113,8 +113,8 @@ Seven canonical change types capturing all claim mutations:
 
 **Rule D2: "Historical state" view (appendix or expanded claim detail)**
 - Include full version_annotation records (all fields) for all revisions of claim
-- Sorted by effective_wave ascending, then revision_id ascending
-- Enable readers to see evolution: "originally HIGH confidence, downgraded in Wave 2"
+- Sorted by effective_cycle ascending, then revision_id ascending
+- Enable readers to see evolution: "originally HIGH confidence, downgraded in cycle 2"
 - Show change_type, rationale, evidence_delta, timestamp_issued
 
 **Rule D3: Status presentation mapping**
@@ -133,7 +133,7 @@ Seven canonical change types capturing all claim mutations:
 
 **Rule D5: Caveat presentation**
 - List all caveats in order of version issuance
-- Preface with wave number: "[Wave 1] mock-only; [Wave 2] ordering may be application-layer"
+- Preface with cycle number: "[Cycle 1] mock-only; [Cycle 2] ordering may be application-layer"
 - Use bold or callout box for DOWNGRADED status caveats
 
 **Rule D6: Overclaim guards**
@@ -147,7 +147,7 @@ Seven canonical change types capturing all claim mutations:
   - Retraction rationale and evidence
   - Timestamp and author of retraction
   - Link to new contradictory evidence
-  - Example: "Originally ORDERING_BYPASS_001.r1 claimed protocol rejects pre-SESSION opcodes. Real-endpoint testing (endpoint_logs/20260920_run5.log lines 234–240) shows HELLO before SESSION is accepted and processed normally. Retraction issued Wave 2."
+  - Example: "Originally ORDERING_BYPASS_001.r1 claimed protocol rejects pre-SESSION opcodes. Real-endpoint testing (endpoint_logs/20260920_run5.log lines 234–240) shows HELLO before SESSION is accepted and processed normally. Retraction issued cycle 2."
 
 **Rule D8: Cross-reference integrity**
 - Every published claim must cite its latest version_annotation record (implicit link)
@@ -166,7 +166,7 @@ Seven canonical change types capturing all claim mutations:
   "revision_id": "ORDERING_BYPASS_001.r1",
   "prior_revision": null,
   "change_type": "initial",
-  "effective_wave": 1,
+  "effective_cycle": 1,
   "status": "RETAINED",
   "confidence_prior": null,
   "confidence_current": 0.90,
@@ -176,7 +176,7 @@ Seven canonical change types capturing all claim mutations:
   "line_ref_updated": "docs/wiki/non-android-fuzz-findings.md line 12",
   "integrity_check": "PASS",
   "timestamp_issued": "2026-09-19T10:45:22Z",
-  "author_id": "security_wave_1_ops"
+  "author_id": "security_cycle_1_ops"
 }
 ```
 
@@ -188,7 +188,7 @@ Subsequent revision:
   "revision_id": "ORDERING_BYPASS_001.r2",
   "prior_revision": "ORDERING_BYPASS_001.r1",
   "change_type": "confidence-upgrade",
-  "effective_wave": 2,
+  "effective_cycle": 2,
   "status": "RETAINED",
   "confidence_prior": 0.90,
   "confidence_current": 0.93,
@@ -212,7 +212,7 @@ Subsequent revision:
   "revision_id": "LENGTH_DESYNC_001.r1",
   "prior_revision": null,
   "change_type": "initial",
-  "effective_wave": 1,
+  "effective_cycle": 1,
   "status": "RETAINED",
   "confidence_prior": null,
   "confidence_current": 0.88,
@@ -222,7 +222,7 @@ Subsequent revision:
   "line_ref_updated": "docs/wiki/non-android-fuzz-findings.md line 18",
   "integrity_check": "PASS",
   "timestamp_issued": "2026-09-19T10:45:22Z",
-  "author_id": "security_wave_1_ops"
+  "author_id": "security_cycle_1_ops"
 }
 ```
 
@@ -234,7 +234,7 @@ Downgrade revision:
   "revision_id": "LENGTH_DESYNC_001.r2",
   "prior_revision": "LENGTH_DESYNC_001.r1",
   "change_type": "confidence-downgrade",
-  "effective_wave": 2,
+  "effective_cycle": 2,
   "status": "DOWNGRADED",
   "confidence_prior": 0.88,
   "confidence_current": 0.72,
@@ -258,7 +258,7 @@ Downgrade revision:
   "revision_id": "HASH_OVER_READ_001.r1",
   "prior_revision": null,
   "change_type": "initial",
-  "effective_wave": 1,
+  "effective_cycle": 1,
   "status": "RETAINED",
   "confidence_prior": null,
   "confidence_current": 0.85,
@@ -268,7 +268,7 @@ Downgrade revision:
   "line_ref_updated": "docs/wiki/non-android-fuzz-findings.md line 25",
   "integrity_check": "PASS",
   "timestamp_issued": "2026-09-19T10:45:22Z",
-  "author_id": "security_wave_1_ops"
+  "author_id": "security_cycle_1_ops"
 }
 ```
 
@@ -280,7 +280,7 @@ Retraction revision:
   "revision_id": "HASH_OVER_READ_001.r2",
   "prior_revision": "HASH_OVER_READ_001.r1",
   "change_type": "retraction",
-  "effective_wave": 2,
+  "effective_cycle": 2,
   "status": "FALSIFIED",
   "confidence_prior": 0.85,
   "confidence_current": 0.0,
@@ -304,7 +304,7 @@ Retraction revision:
   "revision_id": "TAIL_INJECTION_001.r1",
   "prior_revision": null,
   "change_type": "initial",
-  "effective_wave": 1,
+  "effective_cycle": 1,
   "status": "RETAINED",
   "confidence_prior": null,
   "confidence_current": 0.92,
@@ -314,7 +314,7 @@ Retraction revision:
   "line_ref_updated": "docs/wiki/non-android-fuzz-findings.md line 32",
   "integrity_check": "PASS",
   "timestamp_issued": "2026-09-19T10:45:22Z",
-  "author_id": "security_wave_1_ops"
+  "author_id": "security_cycle_1_ops"
 }
 ```
 
@@ -326,7 +326,7 @@ Caveat-strengthening revision:
   "revision_id": "TAIL_INJECTION_001.r2",
   "prior_revision": "TAIL_INJECTION_001.r1",
   "change_type": "caveat-strengthening",
-  "effective_wave": 2,
+  "effective_cycle": 2,
   "status": "RETAINED",
   "confidence_prior": 0.92,
   "confidence_current": 0.92,
@@ -350,7 +350,7 @@ Caveat-strengthening revision:
   "revision_id": "CONNECTION_EXHAUSTION_001.r1",
   "prior_revision": null,
   "change_type": "initial",
-  "effective_wave": 1,
+  "effective_cycle": 1,
   "status": "RETAINED",
   "confidence_prior": null,
   "confidence_current": 0.95,
@@ -360,7 +360,7 @@ Caveat-strengthening revision:
   "line_ref_updated": "docs/wiki/non-android-fuzz-findings.md line 38",
   "integrity_check": "PASS",
   "timestamp_issued": "2026-09-19T10:45:22Z",
-  "author_id": "security_wave_1_ops"
+  "author_id": "security_cycle_1_ops"
 }
 ```
 
@@ -374,7 +374,7 @@ Caveat-strengthening revision:
   "revision_id": "LOG_CONTROL_INJECTION_001.r1",
   "prior_revision": null,
   "change_type": "initial",
-  "effective_wave": 1,
+  "effective_cycle": 1,
   "status": "RETAINED",
   "confidence_prior": null,
   "confidence_current": 0.82,
@@ -384,7 +384,7 @@ Caveat-strengthening revision:
   "line_ref_updated": "docs/wiki/non-android-fuzz-findings.md line 45",
   "integrity_check": "PASS",
   "timestamp_issued": "2026-09-19T10:45:22Z",
-  "author_id": "security_wave_1_ops"
+  "author_id": "security_cycle_1_ops"
 }
 ```
 
@@ -396,7 +396,7 @@ Supersession revision (splits into two narrower claims):
   "revision_id": "LOG_CONTROL_INJECTION_001.r2",
   "prior_revision": "LOG_CONTROL_INJECTION_001.r1",
   "change_type": "superseded",
-  "effective_wave": 2,
+  "effective_cycle": 2,
   "status": "SUPPRESSED",
   "confidence_prior": 0.82,
   "confidence_current": 0.0,
@@ -569,11 +569,11 @@ Before publishing any revised claim:
 - [ ] Caveat_added is concise and appends to prior caveats (not replacing)
 - [ ] Line_ref_updated points to actual modified line in wiki findings file
 - [ ] Timestamp_issued is ISO 8601 UTC
-- [ ] Author_id identifies operator/wave
+- [ ] Author_id identifies operator/cycle
 - [ ] If status changed, evidence_delta provides new artifact or negative-control result
 - [ ] Confidence change magnitude is reasonable for change_type (e.g., upgrade +0.05–0.20)
 - [ ] Publication rules D1–D8 are satisfied for main-table display
 
 ---
 
-**This specification enables auditable, conservative claim evolution across research waves without loss of proof trail.**
+**This specification enables auditable, conservative claim evolution across revision cycles without loss of proof trail.**
