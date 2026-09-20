@@ -55,6 +55,10 @@ __pycache__/
 .venv/
 venv/
 *.log
+
+# Exception: sandbox fuzzing-campaign evidence logs are cited as findings
+# evidence from tools/sandbox/README.md -- keep them tracked, not scratch.
+!tools/sandbox/campaign_results/**/*.log
 heartbeat
 DONE
 

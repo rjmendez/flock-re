@@ -1,0 +1,110 @@
+{
+  "case": "METADATA_before_HELLO",
+  "sent_bytes": 107,
+  "resp": "01",
+  "error": null,
+  "wall_time_s": 0.047,
+  "status": "completed"
+}
+{
+  "case": "FILE_before_HELLO",
+  "sent_bytes": 4096,
+  "resp": "01",
+  "error": null,
+  "wall_time_s": 0.044,
+  "status": "completed"
+}
+{
+  "case": "HASH_before_FILE_no_HELLO",
+  "sent_digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "resp": "01",
+  "error": null,
+  "wall_time_s": 0.044,
+  "status": "completed"
+}
+{
+  "case": "UPLOAD_SAVE_and_COMPLETE_no_START",
+  "steps": [
+    {
+      "opcode": "UPLOAD_SAVE",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "opcode": "UPLOAD_COMPLETE",
+      "resp": "01",
+      "error": null
+    }
+  ],
+  "wall_time_s": 0.044,
+  "status": "completed"
+}
+{
+  "case": "FULL_SEQUENCE_REVERSE_ORDER_no_HELLO",
+  "steps": [
+    {
+      "opcode": "UPLOAD_COMPLETE",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "opcode": "UPLOAD_SAVE",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "opcode": "HASH",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "opcode": "FILE",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "opcode": "METADATA",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "opcode": "UPLOAD_START",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "opcode": "SESSION",
+      "resp": "01",
+      "error": null
+    }
+  ],
+  "wall_time_s": 0.176,
+  "status": "completed"
+}
+{
+  "case": "SAVE_COMPLETE_before_FILE_then_FILE_after",
+  "steps": [
+    {
+      "phase": "pre",
+      "opcode": "UPLOAD_SAVE",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "phase": "pre",
+      "opcode": "UPLOAD_COMPLETE",
+      "resp": "01",
+      "error": null
+    },
+    {
+      "phase": "post-complete",
+      "opcode": "FILE",
+      "resp": "01",
+      "error": null
+    }
+  ],
+  "wall_time_s": 0.088,
+  "status": "completed"
+}
+
+wrote /home/rjmendez/development/flock-re/tools/sandbox/campaign_results/20260919_103513/ordering_results.json
