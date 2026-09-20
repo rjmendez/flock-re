@@ -26,6 +26,14 @@ for research and disclosure.
 | `log_injection_probe.py` | **Log-injection probe**: puts raw CRLF and ANSI/OSC escape bytes directly into the wire bytes of the HELLO `authToken` / METADATA detection fields (bypassing `json.dumps()`, which would otherwise escape them into inert text) to test whether the server's unsanitized `print()`-based logging of received payloads can be used to forge fake log lines or inject terminal-executing escape sequences. `python3 log_injection_probe.py --port 8443`. Confirmed a real log-forging bug (not a crash) -- see verified results below. |
 | `crashpack_coordinate_probe.py` | Offline crash-pack coordinate scanner: recursively scans unpacked crash-log files for likely coordinate evidence (`latitude`, `longitude`, `lat=`, `lon=`, `gps`) and reports per-file hit counts + sample lines, including `ciroc` files. Use this to verify/refute the current GPS-in-logs contradiction with line-level evidence. `python3 crashpack_coordinate_probe.py /path/to/unpacked/crashpack [--json]`. |
 | `honggfuzz/` | honggfuzz upload-protocol automation: black-box replay against the Python mock plus a coverage-guided netdriver scaffold. See `tools/sandbox/honggfuzz/README.md`. |
+| `honggfuzz/run_surface_routes.py` | Deterministic route wrapper for undercovered probes: `gps-log` (runs `crashpack_coordinate_probe.py`) and `protocol-control` (runs `hello_ack_probe.py` for HELLO-ack control-plane behavior). Supports `--dry-run` for command-only checks. |
+
+### Route-expansion commands (deterministic)
+
+```bash
+python3 tools/sandbox/honggfuzz/run_surface_routes.py gps-log --dry-run
+python3 tools/sandbox/honggfuzz/run_surface_routes.py protocol-control --dry-run --plaintext --port 8443 --ack 12
+```
 
 ### The reversed wire protocol (from `flock-st-germain/ConnectionClient`)
 Single-byte opcodes; 8-byte **big-endian** length prefixes (`ByteBuffer.putLong`); SHA-256; 2800-byte chunks.
