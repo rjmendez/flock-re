@@ -1,7 +1,7 @@
 # Prior work & what's new
 
 Public coverage of this leak is extensive but converges on hardware, boot/root, and the
-*scale* of surveillance. This project's deep dive into the encrypted media, the crash-pack
+*scale* of surveillance. This project's investigation into the encrypted media, the crash-pack
 logs, and the runtime protocol is largely new territory.
 
 ## What's publicly established

@@ -38,7 +38,7 @@ python3 log_injection_probe.py --port 8443
 
 These directories contain captured logs/JSON from executed campaigns.
 
-## Tooling update (Wave 15)
+## Tooling update (current cycle)
 
 - Campaign execution now requires explicit evidence capture per run:
   1. exact command(s),
