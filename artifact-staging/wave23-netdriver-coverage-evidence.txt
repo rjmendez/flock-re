@@ -1,0 +1,9 @@
+=== wave23 netdriver coverage 2026-09-20T14:32:46-04:00 ===
+cmd: timeout 45s python3 tools/sandbox/honggfuzz/run_coverage.py --host 127.0.0.1 --port 18444
+seeded 0 file(s) in /home/rjmendez/development/flock-re/tools/sandbox/honggfuzz/runtime/coverage/corpus
+  no files rewritten (already seeded)
+  existing files: 00-session-start.bin, 01-metadata-file-hash.bin, 02-short-file-smuggle.bin, 03-length-edge-cases.bin
+--- coverage artifacts ---
+files 7
+crashes 0
+output_files 3

@@ -1,0 +1,39 @@
+# wave23-fuzz-netdriver-coverage
+
+## Command 1: compile validation
+PATH=/home/rjmendez/.local/bin:/home/rjmendez/.local/src/honggfuzz/hfuzz_cc: CC=/home/rjmendez/.local/src/honggfuzz/hfuzz_cc/hfuzz-gcc bash -lc 'cd /home/rjmendez/development/flock-re && /home/rjmendez/.local/src/honggfuzz/hfuzz_cc/hfuzz-gcc -O1 -g -Wall -Wextra -o tools/sandbox/honggfuzz/upload_netdriver tools/sandbox/honggfuzz/upload_netdriver.c && ls -l tools/sandbox/honggfuzz/upload_netdriver'
+
+### Output
+-rwxr-xr-x 1 rjmendez rjmendez 172416 Sep 20 14:32 tools/sandbox/honggfuzz/upload_netdriver
+
+## Command 2: bounded honggfuzz campaign
+PATH=/home/rjmendez/.local/bin:/home/rjmendez/.local/src/honggfuzz/hfuzz_cc: CC=/home/rjmendez/.local/src/honggfuzz/hfuzz_cc/hfuzz-gcc timeout 25s python3 tools/sandbox/honggfuzz/run_coverage.py
+
+### Output (tail)
+Persistent mode: Launched new persistent pid=34776
+[2026-09-20T14:34:03-0400][W][7915] arch_checkWait():237 Persistent mode: pid=34775 exited with status: EXITED, exit code: 1
+Persistent mode: Launched new persistent pid=34777
+...
+Persistent mode: Launched new persistent pid=34883
+
+## Coverage artifact summary
+ls -l tools/sandbox/honggfuzz/runtime/coverage/output
+
+total 8
+-rw-r--r-- 1 rjmendez rjmendez 4 Sep 20 14:33 0000000b400000000b40000000000000.00000004.honggfuzz.cov
+-rw-r--r-- 1 rjmendez rjmendez 2 Sep 20 14:33 0776c0000000000006c7700000000000.00000002.honggfuzz.cov
+
+ls -l tools/sandbox/honggfuzz/runtime/coverage/crashes
+
+total 0
+
+wc -c tools/sandbox/honggfuzz/runtime/coverage/output/*.cov
+
+6 tools/sandbox/honggfuzz/runtime/coverage/output/0000000b400000000b40000000000000.00000004.honggfuzz.cov
+2 tools/sandbox/honggfuzz/runtime/coverage/output/0776c0000000000006c7700000000000.00000002.honggfuzz.cov
+
+## Notes
+- Honggfuzz is installed at /home/rjmendez/.local/bin/honggfuzz and local hfuzz wrappers are at /home/rjmendez/.local/src/honggfuzz/hfuzz_cc.
+- The script defaults to hfuzz-clang when present; in this environment only hfuzz-gcc is usable, so the campaign was run with CC=/home/rjmendez/.local/src/honggfuzz/hfuzz_cc/hfuzz-gcc and PATH adjusted.
+- The target is a minimal netdriver scaffold, not a production-grade emulation; the persistent-mode child exited repeatedly during the 25-second bounded run, generating only tiny coverage fragments and no crash/hang artifacts.
+- Coverage indicators are therefore limited to 2 relevant .cov fragments (4 and 2 bytes) with no stable map/edge counts visible before the timeout; the run did not produce a full honggfuzz coverage map or crash list.

@@ -33,7 +33,28 @@ Contents: one log per app (`objects`, `ciroc`, `cachaca`, `encoding`, `uploadcli
 - **Cell-tower identifiers.** `modemInfo.txt` records the serving LTE cell (`cid`/`tac`/`pci`/
   `earfcn`, signal) and the Sierra Wireless baseband — region-derivable, no GPS needed.
 - **Self-recovery.** `rescue-level-by-apps.txt` logs repeated "Rescue Level 1" watchdog events.
-- **No GPS in logs**, no bearer/OAuth-header leaks beyond the static upload token.
+- **No bearer/OAuth-header leaks observed** beyond the static upload token.
+
+## Coordinate evidence status (important correction)
+- Earlier revisions of this page stated "**No GPS in logs**." That is now treated as
+  **unresolved**, not established fact.
+- Repo evidence already shows GPS fields in transmitted models/payloads (see
+  [Backend protocol](backend-protocol.md)); an external blog-mapped report additionally
+  claims explicit latitude/longitude values in `ciroc` crash-pack logs.
+- Because this repo has not yet published line-level excerpts of those exact `ciroc` log
+  coordinate entries, this page now tracks it as a **verification gap** rather than
+  asserting either side as final truth.
+
+### Repro path for this gap
+After decrypting and unpacking crash packs, run:
+
+```bash
+python3 tools/sandbox/crashpack_coordinate_probe.py /path/to/unpacked/crashpack
+```
+
+This surfaces likely coordinate-bearing lines (`latitude`, `longitude`, `lat=`, `lon=`,
+`gps`) with per-file hit counts and samples so the `ciroc`-GPS claim can be confirmed or
+refuted with publishable evidence.
 
 ## See also
 - [Data & storage](data-and-storage.md) · [Security posture](security-posture.md) · [Backend protocol](backend-protocol.md) · [Prior work](prior-work.md)

@@ -18,6 +18,7 @@ model behavior, or static evidence directly matches them.
 | "No facial recognition." | Supported (not refuted) | The pipeline contains person object-detection, not a face-recognition model or class. | The claim is supported by absence of the relevant model/class in the dump. |
 | "No audio / no microphone." | Over-permissioning, not proof of recording | Three apps declare `RECORD_AUDIO`, but no audio-capture logic is present in the decompiled apps. | This is a privacy red flag, not proof of active audio capture. |
 | "Footage auto-deletes after 30 days." | Not verifiable from the dump alone | The repo documents a cloud-retention claim versus a rolling on-device buffer; the dump does not prove the cloud policy or the device-side deletion path. | This is a claim about an external service boundary, not a conclusion from the firmware alone. |
+| "Crash-pack logs contain no GPS coordinates." | Unresolved / contradictory evidence | `backend-protocol` and model-path evidence show GPS fields are collected/transmitted, while crash-log line-level `ciroc` coordinate excerpts are not yet published in-repo. | External reporting claims `ciroc` lat/lon in logs; this repo now tracks this as a verification gap, not a settled conclusion. |
 
 ## Disproven
 - **"We don't track/identify people — only vehicles/plates."** The detector has a first-class
