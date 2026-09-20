@@ -64,3 +64,6 @@ DONE
 
 # Local runtime orchestration state (not a repository artifact)
 workflow/
+
+# session artifacts
+artifact-staging/
