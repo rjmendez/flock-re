@@ -136,7 +136,7 @@ depends on runtime/backend behavior it's marked *(static-only)*.
 2. Close credential leaks (provider export/permission model and token logging).
 3. Restrict unauthenticated local export/control surfaces (`DatabaseExportReceiver`, `reaperd` socket).
 
-## Wave 15 execution/tooling update (B2B-gated)
+## Execution/tooling update (B2B-gated)
 - **Completed lanes (execution-grounded):**
   - protocol state-order/replay probing against the local upload mock (bounded campaign),
   - SELinux policy reachability proof for the export chain (`untrusted_app_all` -> `media_rw_data_file`),
