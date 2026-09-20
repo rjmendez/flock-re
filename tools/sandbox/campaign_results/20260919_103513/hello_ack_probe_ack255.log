@@ -1,0 +1,20 @@
+[probe] server HELLO response: {"status": "ok", "mock": true}
+[probe] sending BOGUS client-ack byte = 255 (valid/expected value is 1=OK)
+[probe] step SESSION: sent b'\x04' -> reply b'\x01'
+[probe] step UPLOAD_START: sent b'\x05' -> reply b'\x01'
+[probe] step METADATA: sent b'\x0c\x00\x00\x00\x00\x00\x00\x00J{"cameraSerial": "MOCK-000000", "createdAt": 1789828541, "detections": []}' -> reply b'\x01'
+[probe] step FILE: sent 2048B synthetic -> reply b'\x01'
+[probe] step HASH: sent b"\x07\x7fC{FX\xaf\xad9\xa2\xcd]@\x00\xb8j&\xf3\xd6\x19'\xb1\xa6U\x17P\x98\n>@\xc3! " -> reply b'\x01'
+[probe] step UPLOAD_SAVE: sent b'\x08' -> reply b'\x01'
+[probe] step UPLOAD_COMPLETE: sent b'\t' -> reply b'\x01'
+
+=== SUMMARY ===
+bogus ack byte sent: 255
+hash verified by server after bogus ack + full flow: True
+  SESSION          -> b'\x01'
+  UPLOAD_START     -> b'\x01'
+  METADATA         -> b'\x01'
+  FILE             -> b'\x01'
+  HASH             -> b'\x01'
+  UPLOAD_SAVE      -> b'\x01'
+  UPLOAD_COMPLETE  -> b'\x01'
