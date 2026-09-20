@@ -18,8 +18,9 @@ against a real endpoint. This talks only to your own client on localhost.
 """
 import argparse, hashlib, json, socket, ssl, struct, sys, threading, time
 
-OK, HELLO, PROTO, SESSION, START, FILE, HASH, SAVE, COMPLETE, METADATA = 1,2,3,4,5,6,7,8,9,12
-NAMES = {1:"OK",2:"HELLO",3:"PROTO",4:"SESSION",5:"UPLOAD_START",6:"FILE",7:"HASH",8:"UPLOAD_SAVE",9:"UPLOAD_COMPLETE",12:"METADATA"}
+OK, FAIL, HELLO, PROTO, SESSION, START, FILE, HASH, SAVE, COMPLETE, METADATA = 1,0,2,3,4,5,6,7,8,9,12
+MAX_FRAME_BYTES = 1 << 20
+NAMES = {1:"OK", 0:"FAIL", 2:"HELLO", 3:"PROTO", 4:"SESSION", 5:"UPLOAD_START", 6:"FILE", 7:"HASH", 8:"UPLOAD_SAVE", 9:"UPLOAD_COMPLETE", 12:"METADATA"}
 
 
 def recvn(f, n):
@@ -32,11 +33,24 @@ def recvn(f, n):
     return b
 
 
-def read_len(f):
-    return struct.unpack(">q", recvn(f, 8))[0]  # 8-byte big-endian (ByteBuffer.putLong)
+def read_len(f, *, max_bytes=MAX_FRAME_BYTES):
+    n = struct.unpack(">q", recvn(f, 8))[0]
+    if n <= 0 or n > max_bytes:
+        raise ValueError(f"length prefix out of range: {n} (max={max_bytes})")
+    return n
+
+
+def fail_closed(conn, log, reason):
+    log(f"   {reason}")
+    try:
+        conn.sendall(bytes([FAIL]))
+    except OSError:
+        pass
+    raise ConnectionError(reason)
 
 
 def handle(conn, addr, args):
+
     log = lambda *a: print(f"[{addr[1]}]", *a, flush=True)
     received_file = hashlib.sha256()
     file_bytes = 0
@@ -48,9 +62,12 @@ def handle(conn, addr, args):
             op = op_b[0]
             log(f"<- opcode {op} ({NAMES.get(op,'?')})")
             if op == HELLO:
-                proto = recvn(conn, 1)[0]
-                n = read_len(conn)
-                payload = recvn(conn, n).decode("utf-8", "replace")
+                try:
+                    proto = recvn(conn, 1)[0]
+                    n = read_len(conn)
+                    payload = recvn(conn, n).decode("utf-8", "replace")
+                except (ConnectionError, ValueError, struct.error) as exc:
+                    fail_closed(conn, log, f"invalid HELLO payload: {exc}")
                 log(f"   protocol=v{proto}  hello-payload ({n}B): {payload[:400]}")
                 # NOTE: the hello payload carries the per-device auth token — captured here,
                 # never validated against anything (sandbox).
@@ -59,12 +76,18 @@ def handle(conn, addr, args):
                 ack = recvn(conn, 1)[0]
                 log(f"   client ack={ack}")
             elif op == METADATA:
-                n = read_len(conn)
-                meta = recvn(conn, n).decode("utf-8", "replace")
+                try:
+                    n = read_len(conn)
+                    meta = recvn(conn, n).decode("utf-8", "replace")
+                except (ConnectionError, ValueError, struct.error) as exc:
+                    fail_closed(conn, log, f"invalid METADATA length: {exc}")
                 log(f"   METADATA ({n}B): {meta[:600]}")
                 conn.sendall(bytes([OK]))
             elif op == FILE:
-                total = read_len(conn)
+                try:
+                    total = read_len(conn)
+                except (ConnectionError, ValueError, struct.error) as exc:
+                    fail_closed(conn, log, f"invalid FILE length: {exc}")
                 log(f"   FILE declared {total}B; reading in <= {args.chunk}B chunks")
                 remaining = total
                 while remaining > 0:
@@ -75,16 +98,20 @@ def handle(conn, addr, args):
                 log(f"   received {file_bytes}B, sha256={received_file.hexdigest()}")
                 conn.sendall(bytes([OK]))
             elif op == HASH:
-                client_hash = recvn(conn, 32)
+                try:
+                    client_hash = recvn(conn, 32)
+                except ConnectionError as exc:
+                    fail_closed(conn, log, f"truncated HASH frame: {exc}")
                 ours = received_file.digest()
                 match = client_hash == ours
                 log(f"   client sha256={client_hash.hex()}  match={match}")
-                conn.sendall(bytes([OK if match else 0]))
+                conn.sendall(bytes([OK if match else FAIL]))
             elif op in (SESSION, START, SAVE, COMPLETE, PROTO):
                 conn.sendall(bytes([OK]))
             else:
-                log(f"   !! unknown opcode {op} — sending OK, continuing (fuzz-friendly)")
-                conn.sendall(bytes([OK]))
+                log(f"   !! unknown opcode {op} — failing closed; no success ack is sent")
+                conn.sendall(bytes([FAIL]))
+                return
     except (ConnectionError, ssl.SSLError, struct.error) as e:
         log(f"   session ended: {e}")
     finally:
