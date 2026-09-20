@@ -58,5 +58,5 @@ venv/
 heartbeat
 DONE
 
-# Local agent orchestration (not a repository artifact)
+# Local runtime orchestration state (not a repository artifact)
 workflow/

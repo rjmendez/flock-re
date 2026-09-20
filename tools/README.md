@@ -17,6 +17,12 @@ just install docs.
   TFLite models against synthetic input (working), plus a prepared-but-blocked AVD/Frida path
   for the native JNI library (blocked on an ABI gap — no ARM-translation-capable emulator image
   exists for the app's armeabi-v7a-only libs). See `tools/jni-harness/README.md`.
+- **`tools/jni-harness/afl-frida/`** — AFL++ Frida-mode scaffold for the ARM32 native layer,
+  starting with a `libnativeImageUtils.so`-style non-JNI target path. See
+  `tools/jni-harness/afl-frida/README.md`.
+- **`tools/sandbox/honggfuzz/`** — honggfuzz scaffolding for the upload protocol surface:
+  black-box replay against the Python mock plus a minimal coverage-guided netdriver target.
+  See `tools/sandbox/honggfuzz/README.md`.
 
 Everything else below is standard, publicly available tooling — install it and point the
 commands at the dump.

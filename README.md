@@ -13,6 +13,10 @@ stay untracked — see `.gitignore`.
 plus a [claims-vs-evidence](docs/wiki/claims-vs-evidence.md) page testing Flock's public
 statements against the firmware. Hostnames and secrets are obfuscated.
 
+Documentation standard: narrative analysis belongs in `docs/wiki/`; raw runtime evidence
+(logs/JSON command outputs) belongs in `tools/*/campaign_results/` or equivalent artifact
+directories. Avoid publishing process/tool provenance notes.
+
 ## Tools
 
 - **`tools/download/bt.py`** — libtorrent fetcher for the dump. Resumable, adds a
