@@ -102,8 +102,10 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   parameter validation unconfirmed at runtime)*.
 - **Kernel is a soft target.** kernel 3.18.71 (patch level frozen 2018-06-05) compiles in the
   futex/netfilter/XFRM/ION subsystems that carry published local-privesc CVEs, with **no SMEP/SMAP
-  and no KASLR** — so any reachable kernel bug is a direct root escalation *(plausibility by
-  version/config, static-only)*. See [Kernel & drivers](kernel.md).
+  and no KASLR** — so any reachable kernel bug is a direct root escalation. Public IDs explicitly in
+  this plausibility window include **CVE-2018-9568** and **CVE-2021-1905**; in this repo those are
+  tracked as **version/date plausibility only** (no confirmed exploitation trace or per-CVE backport
+  proof in the extracted source). *(static-only)*. See [Kernel & drivers](kernel.md).
 - **Clean downgrade.** No anti-rollback floor + a bootable 26-month-older backup image = an
   attacker or a pushed update can revert the device to firmware missing two years of fixes. See
   [OTA & updates](ota-updates.md).

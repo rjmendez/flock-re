@@ -5,6 +5,10 @@ The Linux kernel, its config, and notable drivers.
 - **Version:** Linux **3.18.71** (Qualcomm CAF `msm-3.18` branch, GCC 4.8), built 2025-06-05;
   the backup boot slot still runs a 2023 build. Upstream 3.18 has been **end-of-life since ~2018**,
   and the Android security-patch string is frozen at 2018-06-05 — see [Security posture](security-posture.md).
+- **Named CVE plausibility gap (version/date only).** This image predates publicly tracked Android/
+  Qualcomm kernel fixes such as **CVE-2018-9568** and **CVE-2021-1905**. The repo does **not** currently
+  include a kernel-level proof of exploitability or a backport audit for those IDs, so treat this as
+  exposure plausibility by version/patch date, not confirmed exploitation.
 - **Config:** the full `.config` (4309 lines) is recoverable via in-kernel IKCONFIG.
 - **Module signing enforced** end-to-end (`MODULE_SIG_FORCE`, SHA-512) — every `.ko` is signed to
   the running kernel. (A hardening bright spot amid the stale base.)
