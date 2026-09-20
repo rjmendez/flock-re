@@ -1,47 +1,3 @@
-# Raw dumps and anything derived from them stay OUT of git.
-# Provenance: DDoSecrets "Flock ALPR camera" torrent (~28.6 GiB). Fetch with tools/download/bt.py.
-
-# Raw partition images / disk dumps
-*.img
-*.img.*
-*.bin
-*.raw
-*.sparse
-*.simg
-
-# The dump tree itself (kept alongside, not under, this repo)
-/dumps/
-Flock ALPR camera/
-paritions/
-sample-media/
-
-# Extracted filesystems / carved output (large, re-derivable)
-extracted/
-re/
-carved/
-_extract*/
-*.ext4
-
-# Ghidra projects (large, machine-specific)
-*.gpr
-*.rep/
-ghidra_*/
-
-# Media / captured content (PII — never commit)
-*.jpg
-*.jpeg
-*.png
-*.mp4
-*.h264
-*.h265
-
-# Databases pulled from the device (may hold PII)
-*.db
-*.sqlite
-*.sqlite3
-
-# Secrets extracted from the firmware — never commit raw values
-**/RAW_FINDINGS.txt
 **/secrets/raw/
 *.key
 *.pem
@@ -55,10 +11,6 @@ __pycache__/
 .venv/
 venv/
 *.log
-
-# Exception: sandbox fuzzing-campaign evidence logs are cited as findings
-# evidence from tools/sandbox/README.md -- keep them tracked, not scratch.
-!tools/sandbox/campaign_results/**/*.log
 heartbeat
 DONE
 
@@ -67,3 +19,6 @@ workflow/
 
 # session artifacts
 artifact-staging/
+
+# generated fuzz campaign artifacts
+tools/sandbox/campaign_results/

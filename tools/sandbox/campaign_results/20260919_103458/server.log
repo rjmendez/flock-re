@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/home/rjmendez/development/flock-re/tools/sandbox/upload_server.py", line 127, in <module>
-    main()
-  File "/home/rjmendez/development/flock-re/tools/sandbox/upload_server.py", line 105, in main
-    srv.bind((a.host, a.port)); srv.listen(5)
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^
-OSError: [Errno 98] Address already in use
