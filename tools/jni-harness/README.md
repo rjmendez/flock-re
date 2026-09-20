@@ -3,9 +3,8 @@
 Runs the extracted Flock Falcon native ML library / TFLite models in an **emulated, offline
 environment** to observe real behavior — never against a real device or a real Flock backend.
 Every input is synthetic (procedurally generated or hand-drawn primitives); no captured
-plate/photo/PII from the dump is ever used. Full status, evidence, and the AVD/ABI blocker
-write-up live in the dump's evidence tree: `<dump>/deep/swarm/jni-harness/FINDINGS.md`
-(not committed here — see `tools/README.md`'s "Reproduce" section for the dump layout).
+plate/photo/PII from the dump is ever used. Reproduction details are documented in this
+directory and in `tools/README.md`.
 
 ## Component A — TFLite-only path (working)
 
@@ -23,9 +22,9 @@ python3 tflite/run_tflite_models.py   # needs numpy<2, pillow, tflite-runtime �
 Confirmed reproducible: `MLM-2854-pico3-best-fp16.tflite` on the synthetic gradient image
 consistently detects 6 `vehicle` boxes at confidence 0.348.
 
-## Component B — AVD/ART path — real app execution achieved
+## Component B — AVD/ART path — real app execution achieved (validated setup)
 
-**Current status: real, unmodified `flock-object` app code runs on genuinely-ARM
+**Validated status: real, unmodified `flock-object` app code runs on genuinely-ARM
 hardware-emulated Android, with a real, verified Frida hook.** It is not yet reaching
 `NativeML` — it stops on an enumerable set of Android-O+-only framework API calls this
 older OS doesn't have — but every previous "fundamental" blocker below was individually
@@ -41,9 +40,9 @@ architecture at all (`FATAL | CPU Architecture 'arm' is not supported by the QEM
 emulator`). **Correction for anyone reusing this writeup**: a sibling effort
 (`tools/sandbox/`, PR #8) framed the AVD path as blocked by "no `/dev/kvm`" (acceleration) —
 that was already wrong (TCG boots fine, just slowly), and turned out to be the wrong layer
-entirely once the validated fix path below was identified.
+entirely once the validated setup found the real fix below.
 
-### Validated fix path
+### Validated setup: the actual fix
 The architecture gate above lives **only** in the top-level `emulator` launcher — the
 arch-specific `qemu-system-armel(-headless)` binary it normally delegates to (already
 shipped inside the same emulator package) has no such check and boots ARM guests fine when
@@ -88,7 +87,7 @@ From there, three more layers, each with a standard, documented fix:
 before running any of this: `adb root` + on-device `iptables -P OUTPUT DROP` with a
 loopback-only exception, verified live (a real `ping` returns `Operation not permitted`).
 This matters because nothing about the host WSL/emulator stack blocks real outbound network
-access by default — confirmed by legitimate outbound calls during setup (Google's
+access by default — confirmed by legitimate outbound calls during environment setup (Google's
 sdkmanager repo, Ubuntu's apt mirrors, `android.googlesource.com`).
 
 With all three layers fixed, the real, only-cosmetically-modified app installs and runs:
@@ -99,19 +98,26 @@ app run. It stops on `NoSuchMethodError` for `ContentResolver`'s 4-arg
 from this OS, called from at least 3 sites in the app (`CameraSettings.kt:319`, `:569`,
 `ApnHelper.kt:317`; everywhere else already uses the always-valid 5-arg legacy form).
 
-### `frida/coreValues_hook.js` — real, executed, verified (not a skeleton)
-Rather than inventing synthetic data, this hooks `CameraSettings.getCoreValuesFromContentProvider`
-to return the app's **own existing** fallback (`defaultCoreValues`, a static field already
-in the app for "no data available"), short-circuiting the missing-method call entirely:
+### `frida/coreValues_hook.js` - Wave 6 caller-level wrapper hooks
+The narrow Wave 6 loop keeps the workaround at app-level wrappers rather than patching absent
+framework APIs. The active bypass stack now includes:
+- `CameraSettings.getSettingsFromContentProvider(Context)` / legacy `getCoreValues*` wrappers to bypass API-26 `ContentResolver.query(..., Bundle, CancellationSignal)` call sites.
+- `FlockBootstrapperActivity.onStart()` API<26 compatibility path that replaces `startForegroundService(...)` with `startService(...)`.
+- `FlockForegroundService.onCreate()` / `onStartCommand(...)` compatibility hooks to skip API-26 notification/bootstrap paths on API 25.
+
+Run it against the known-good Frida pairing for this target (client/server `16.1.4`):
+```bash
+frida -U -f com.flocksafety.android.objects -l tools/jni-harness/frida/coreValues_hook.js
 ```
-[HOOK] defaultCoreValues = CoreValues(serialNumber=cereal, authToken=dirtymartini,
-statusUrl=https://dev-gimlet.flocksafety.com/, ...)
+Expected signal:
 ```
-(Confirmed real, not fabricated evidence — and a minor finding in its own right: those are
-literal joke placeholder strings shipped in the production APK's fallback path, not a live
-credential.) Execution proceeds past that call and crashes on the *next* affected call site
-(`getSettingsFromContentProvider`, inside a Kotlin coroutine's generated `invokeSuspend` —
-messier to hook safely than a plain method; not yet attempted).
+[HOOK] CameraSettings wrapper hook active for: ...
+[HOOK] getSettingsFromContentProvider(android.content.Context) called - narrow Wave 6 caller-side bypass before API26+ ContentResolver.query(Uri,String[],Bundle,CancellationSignal).
+[HOOK] FlockBootstrapperActivity.onStart compatibility hook active - replacing API26 startForegroundService() with startService().
+[HOOK] FlockForegroundService.onStartCommand(...) bypassed before scheduled-thread startup on API<26.
+```
+This keeps the workaround narrow and reproducible: app-level caller wrappers and targeted
+runtime compatibility hooks only, no synthetic data, and no framework method monkeypatching.
 
 **Frida version note**: current Frida (17.18.0) SIGSEGVs its own injected agent on attach to
 this API 25/Nougat ART process (confirmed via `adb logcat` tombstone). An older release,
@@ -122,12 +128,34 @@ injection against this target; the newer CLI is fine for everything else (`frida
 interception) remains prepared for once execution reaches that far.
 
 Full narrative, every log, and the "if picking this back up" next steps:
-dump's `FINDINGS.md`, dynamic-analysis section.
+dump's `FINDINGS.md`, in the section covering the validated setup.
+
+### Component C — AFL++ / Frida scaffold for the ARM32 native layer
+
+The new `afl-frida/` subtree is the lower-friction starting point for coverage-guided fuzzing of
+the ARM32 native path, beginning with `libnativeImageUtils.so`-style code that does not require a
+JNI bridge first.
+
+```bash
+cd tools/jni-harness/afl-frida
+./bin/setup.sh
+export ANDROID_NDK_ROOT=/path/to/android-ndk
+export AFLPP_ROOT=/path/to/AFLplusplus
+export TARGET_SO_PATH=/path/to/extracted/libnativeImageUtils.so
+export TARGET_SYMBOL=<real_native_symbol>
+export TARGET_CALL_MODE=image_frame
+./bin/build-harness.sh
+./bin/run.sh --dry-run
+```
+
+Input contract and outputs are documented in `afl-frida/README.md`. The run wrapper enforces the
+known-good Frida pin (`16.1.4`) and refuses to continue if the host/device pairing does not match.
+If you point this at the emulator, keep the ARM32/TCG caveat in mind: it works, but it is slow.
 
 ## Manifest patch tooling (`manifest-patch/`)
 
 Small, reusable scripts used to make the one narrowly-authorized deviation documented in
-`FINDINGS.md`: lowering `flock-object.apk`'s `minSdkVersion` from 27 to 25 to get
+`FINDINGS.md` (earlier attempts): lowering `flock-object.apk`'s `minSdkVersion` from 27 to 25 to get
 past an installer SDK-version gate, and nothing else.
 
 - `extract_manifest.py` — pulls the raw compiled `AndroidManifest.xml` bytes out of an APK's
@@ -135,7 +163,7 @@ past an installer SDK-version gate, and nothing else.
 - `patch_min_sdk.py` — parses the real Android binary-XML (AXML) chunk structure
   (`ResChunk_header` / `ResXMLTree_node` / `ResXMLTree_attrExt` / `ResXMLTree_attribute`) to
   find the `<uses-sdk android:minSdkVersion>` attribute's raw 4-byte integer value and
-  overwrites *only* those 4 bytes, asserting the expected old value first. **Update**:
+  overwrites *only* those 4 bytes, asserting the expected old value first. **Validated setup update**:
   this alone is enough to pass the install-time SDK gate, but not enough to actually run on
   this specific APK — the compiled dex uses a bytecode format version this old ART doesn't
   parse at all, which only the full `apktool d`/edit/`apktool b` round-trip fixes (it
@@ -143,7 +171,7 @@ past an installer SDK-version gate, and nothing else.
   this APK's adaptive-icon resources (`<adaptive-icon> elements require a sdk version of at
   least 26`) — resolved by deleting `res/mipmap-anydpi/{ic_launcher,ic_launcher_round}.xml`
   (the app already ships full legacy PNG icons at every density as a fallback; a
-  resource-only, zero-logic change). See `FINDINGS.md` for the full recipe
+  resource-only, zero-logic change). See the validated-setup section in `FINDINGS.md` for the full recipe
   including the required `zipalign -p 4` pass. Keep this byte-patch script around regardless
   — it's the right tool for APKs that don't also need dex desugaring.
 - `rebuild_apk.py` — copies every other zip entry from the original APK byte-for-byte (same
