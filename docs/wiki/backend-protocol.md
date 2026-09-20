@@ -36,8 +36,7 @@ values redacted** — shape only.
   media-upload socket **and** this REST telemetry/settings/heartbeat/one-shot API — a leaked token
   compromises both. The default placeholder credential baked into the pre-provisioning fallback is
   `CoreValues.DEFAULT_API_KEY = "dirtymartini"`, matching this project's already-documented
-  cocktail-name constant convention (`sambuca`, `cachaca`, `ciroc`, …). Cite:
-  `deep/swarm/phonehome-payload-endpoint/FINDINGS.md`.
+  cocktail-name constant convention (`sambuca`, `cachaca`, `ciroc`, …).
 - **Dynamically confirmed, not just inferred.** A dynamic-analysis harness independently
   confirmed, via a live method return on a genuinely-ARM-emulated Android guest running the real
   (only cosmetically re-signed) `flock-object` app, that
@@ -54,8 +53,7 @@ values redacted** — shape only.
   requires `sharedUserId=android.uid.system` (install fails with
   `INSTALL_FAILED_SHARED_USER_INCOMPATIBLE` unless platform-signed), corroborating the static
   manifest finding already covered on [Local attack surface](local-attack-surface.md) /
-  [Apps](apps.md). Cite: `deep/swarm/jni-harness/FINDINGS.md`. Reproduce:
-  `tools/jni-harness/README.md`.
+  [Apps](apps.md). Reproduce: `tools/jni-harness/README.md`.
 
 ## Capture upload (not HTTP)
 - **Not** an HTTP `/v1/sax` multipart endpoint (prior guess corrected). It's a **hand-rolled
@@ -85,11 +83,11 @@ dynamic testing of the simulation and independently re-verified:
    next opcode) and no timeout (withholding the last byte hangs the handler thread forever).
 5. ~~The per-upload integrity hash is a single running digest across the whole TCP connection
    rather than reset per capture, so a second legitimate capture on a reused connection spuriously
-   fails its hash check.~~ **Retracted, checked against the real device**: the real
+   fails its hash check.~~ **Retracted mock fidelity gap (non-generalizing):** this was a mock-only fidelity gap, not a confirmed real-device bug. The real
    `ConnectionClient` instantiates a fresh `MessageDigest` as a local variable inside each
    `sendFile()` call (never stored on the object), so a reused connection can never leak one
-   capture's hash into the next. This was a fidelity gap in how the simulation was written, not a
-   real bug — see the dated addendum in `deep/swarm/adversarial-local-llm/FINDINGS.md`.
+   capture's hash into the next. This was a mock-only fidelity gap in how the simulation was written,
+   not a confirmed real-device bug.
 6. HELLO/METADATA string fields are logged verbatim with no sanitization, so embedded CR/LF or
    ANSI/OSC bytes can forge fake log lines or corrupt a tailed terminal.
 7. An unbounded one-thread-per-connection accept loop with no per-connection timeout and no
@@ -107,9 +105,7 @@ peer-supplied length prefix to size a read or allocation** — is confirmed to b
 habit in Flock's own shipped client code, not something invented for the mock. The client's own
 `sendHello()` does exactly this when parsing the *server's* response (unchecked `int` cast on an
 8-byte length, plus a non-looping `read()`) — a real, dynamically-uninvestigated bug in the actual
-device, written up as finding #8 in `deep/swarm/upload-protocol/protocol-findings.md`. Cite:
-`deep/swarm/adversarial-local-llm/FINDINGS.md` (mock bugs + retraction addendum) and
-`deep/swarm/upload-protocol/protocol-findings.md` (the real-client finding). Reproduce:
+device, written up as finding #8 in the local protocol notes. Reproduce:
 `tools/sandbox/upload_server.py` (the mock server) and `tools/sandbox/README.md`.
 
 ## What each capture transmits (from the app data models)
@@ -156,7 +152,7 @@ below). Confirmed fields:
 Transport for this channel is TLS with the platform's default OkHttp/Android certificate
 validation — no evidence of the upload protocol's `SSLContext`-discard bug below, but also no
 certificate pinning, so the real exposure here is replay/forgery via the shared static token
-(above), not passive sniffing. Cite: `deep/swarm/phonehome-payload-endpoint/FINDINGS.md`.
+(above), not passive sniffing.
 
 ## Runtime surface (confirmed from crash-pack logs)
 Across 6+ months of logs the device's entire network surface is **3 hosts**: two REST APIs
@@ -194,4 +190,4 @@ credential-issuance path, not a per-device secret.
 > a local mock server.
 
 ## See also
-- [Apps](apps.md) · [Local attack surface](local-attack-surface.md) · [Data & storage](data-and-storage.md) · [Security posture](security-posture.md)
+- [Apps](apps.md) · [Local attack surface](local-attack-surface.md) · [Data & storage](data-and-storage.md) · [Security posture](security-posture.md) · [Non-Android protocol fuzz research](non-android-fuzz-research.md)

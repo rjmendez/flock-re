@@ -20,7 +20,7 @@ How firmware/app updates reach the camera, and why the integrity chain is weak.
   platform key. Independently re-derived: the low 32 bits of `otacerts.zip`'s cert modulus
   (via `openssl x509 -modulus`) are byte-identical to the first little-endian word of the
   `res/keys` `n[]` array — confirming the match by a method separate from a full word-array
-  comparison (`deep/swarm/ota-signing-rollback-verification/FINDINGS.md`).
+  comparison.
 - **A third, separate trust domain.** This OTA key is neither the [SecTools TEST
   chain](boot-chain.md) trusted by TrustZone/Keymaster/lksecapp/RPM nor the world-public AOSP
   `testkey` that `aboot` trusts for `boot`/`recovery` image signatures — three independent keys
@@ -71,8 +71,7 @@ How firmware/app updates reach the camera, and why the integrity chain is weak.
   older, authentically-signed, potentially-vulnerable release the backend is willing to advertise
   as the target version. Not tested against a live backend (out of scope, no network contact): the
   on-device downgrade gate is **off by design** for companion apps — a code-level finding, not a
-  demonstrated remote exploit today. See
-  `deep/swarm/ota-signing-rollback-verification/FINDINGS.md`.
+  demonstrated remote exploit today.
 
 ## See also
 - [Backend protocol](backend-protocol.md) · [Boot chain](boot-chain.md) · [Security posture](security-posture.md)
