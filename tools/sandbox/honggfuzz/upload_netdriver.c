@@ -103,7 +103,7 @@ static ssize_t read_exact(int fd, void* buf, size_t size) {
     return (ssize_t)have;
 }
 
-static bool read_u64_be(int fd, uint64_t* out) {
+static bool read_i64_be(int fd, int64_t* out) {
     uint8_t buf[8];
     if (read_exact(fd, buf, sizeof(buf)) != (ssize_t)sizeof(buf)) {
         return false;
@@ -112,7 +112,7 @@ static bool read_u64_be(int fd, uint64_t* out) {
     for (size_t i = 0; i < sizeof(buf); i++) {
         value = (value << 8) | (uint64_t)buf[i];
     }
-    *out = value;
+    *out = (int64_t)value;
     return true;
 }
 
@@ -136,9 +136,15 @@ static bool consume_frame(int fd, upload_state_t* state) {
     switch (op) {
     case UPLOAD_HELLO: {
         uint8_t proto = 0;
-        uint64_t len = 0;
+        int64_t len = 0;
         if (read_exact(fd, &proto, sizeof(proto)) != (ssize_t)sizeof(proto) ||
-            !read_u64_be(fd, &len) || len > UPLOAD_MAX_FRAME) {
+            !read_i64_be(fd, &len)) {
+            return false;
+        }
+        if (len < 0) {
+            len = 0;
+        }
+        if ((uint64_t)len > UPLOAD_MAX_FRAME) {
             return false;
         }
         uint8_t* buf = (uint8_t*)malloc((size_t)len ? (size_t)len : 1u);
@@ -157,12 +163,18 @@ static bool consume_frame(int fd, upload_state_t* state) {
     }
     case UPLOAD_META:
     case UPLOAD_FILE: {
-        uint64_t len = 0;
-        if (!read_u64_be(fd, &len) || len > UPLOAD_MAX_FRAME) {
+        int64_t len = 0;
+        if (!read_i64_be(fd, &len)) {
+            return false;
+        }
+        if (len < 0) {
+            len = 0;
+        }
+        if ((uint64_t)len > UPLOAD_MAX_FRAME) {
             return false;
         }
         uint8_t scratch[4096];
-        uint64_t remaining = len;
+        uint64_t remaining = (uint64_t)len;
         while (remaining > 0) {
             size_t chunk = remaining < sizeof(scratch) ? (size_t)remaining : sizeof(scratch);
             if (read_exact(fd, scratch, chunk) != (ssize_t)chunk) {

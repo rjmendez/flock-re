@@ -36,7 +36,7 @@ def main() -> int:
     ap.add_argument("--honggfuzz", default="honggfuzz", help="honggfuzz executable")
     ap.add_argument(
         "--compiler",
-        default=os.environ.get("CC") or shutil.which("hfuzz-clang") or "cc",
+        default=os.environ.get("CC") or shutil.which("hfuzz-clang") or shutil.which("hfuzz-gcc") or "cc",
     )
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8443)
