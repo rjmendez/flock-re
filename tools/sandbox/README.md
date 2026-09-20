@@ -24,7 +24,16 @@ for research and disclosure.
 | `hash_framing_fuzz.py` | HASH-frame (opcode 7) boundary probe, distinct from `frame_desync_client.py`'s length-prefixed `FILE` case: HASH has no length prefix at all, just a bare fixed 32-byte read (`recvn(conn, 32)`). Sends 33 bytes (32-byte digest + 1 extra byte crafted as opcode 8/UPLOAD_SAVE) in a single write to test over-read opcode smuggling, and 31 bytes (withholding the last byte) to test under-read thread blocking. `python3 hash_framing_fuzz.py --port 8443 [--out results.json]`. Confirmed both -- see verified results below. |
 | `slowloris_attack.py` | **Connection/thread-exhaustion (slowloris-style) attack**, distinct from the oversized-length allocation DoS below: opens many concurrent connections and on each sends a small, legitimate-looking `FILE` length header (e.g. 1000) then only 1 body byte, holding the socket open forever with no further data. Exploits the one-thread-per-connection model + no per-socket recv timeout + an unguarded `srv.accept()` in the main loop. `python3 slowloris_attack.py --port 8443 --connections 400 --hold 15 --canary`. Confirmed a full process crash -- see verified results below. |
 | `log_injection_probe.py` | **Log-injection probe**: puts raw CRLF and ANSI/OSC escape bytes directly into the wire bytes of the HELLO `authToken` / METADATA detection fields (bypassing `json.dumps()`, which would otherwise escape them into inert text) to test whether the server's unsanitized `print()`-based logging of received payloads can be used to forge fake log lines or inject terminal-executing escape sequences. `python3 log_injection_probe.py --port 8443`. Confirmed a real log-forging bug (not a crash) -- see verified results below. |
+| `crashpack_coordinate_probe.py` | Offline crash-pack coordinate scanner: recursively scans unpacked crash-log files for likely coordinate evidence (`latitude`, `longitude`, `lat=`, `lon=`, `gps`) and reports per-file hit counts + sample lines, including `ciroc` files. Use this to verify/refute the current GPS-in-logs contradiction with line-level evidence. `python3 crashpack_coordinate_probe.py /path/to/unpacked/crashpack [--json]`. |
 | `honggfuzz/` | honggfuzz upload-protocol automation: black-box replay against the Python mock plus a coverage-guided netdriver scaffold. See `tools/sandbox/honggfuzz/README.md`. |
+| `honggfuzz/run_surface_routes.py` | Deterministic route wrapper for undercovered probes: `gps-log` (runs `crashpack_coordinate_probe.py`) and `protocol-control` (runs `hello_ack_probe.py` for HELLO-ack control-plane behavior). Supports `--dry-run` for command-only checks. |
+
+### Route-expansion commands (deterministic)
+
+```bash
+python3 tools/sandbox/honggfuzz/run_surface_routes.py gps-log --dry-run
+python3 tools/sandbox/honggfuzz/run_surface_routes.py protocol-control --dry-run --plaintext --port 8443 --ack 12
+```
 
 ### The reversed wire protocol (from `flock-st-germain/ConnectionClient`)
 Single-byte opcodes; 8-byte **big-endian** length prefixes (`ByteBuffer.putLong`); SHA-256; 2800-byte chunks.
