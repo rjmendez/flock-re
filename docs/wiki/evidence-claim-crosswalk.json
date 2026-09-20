@@ -1,0 +1,414 @@
+{
+  "crosswalk_metadata": {
+    "version": "1.0",
+    "generated": "2026-09-19T11:15:15Z",
+    "scope": "non-Android protocol findings crosswalk",
+    "methodology": "read-only analysis; claims extracted from wiki with line refs; conservative grading"
+  },
+  "claims": [
+    {
+      "id": 1,
+      "claim_short": "Ordering/state bypass (pre-HELLO)",
+      "claim_full": "The mock accepts protocol operations out of order, including pre-HELLO sequences.",
+      "wiki_source": "non-android-fuzz-findings.md:8-9",
+      "artifact_files": [
+        "tools/sandbox/campaign_results/20260919_103513/ordering_results.json",
+        "tools/sandbox/campaign_results/20260919_103513/ordering_attack.log",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "confidence": 0.95,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/ordering_attack_client.py",
+      "caveat": "Claims tested on mock only; real backend ordering enforcement unknown",
+      "no_proof_marker": false
+    },
+    {
+      "id": 2,
+      "claim_short": "Ordering bypass (full reverse sequence)",
+      "claim_full": "[Implicit from ordering bypass class] Full capture sequence accepted in reverse opcode order with no HELLO",
+      "wiki_source": "non-android-fuzz-findings.md:8-9 + exploitability_table:20",
+      "artifact_files": [
+        "tools/sandbox/campaign_results/20260919_103513/ordering_results.json"
+      ],
+      "json_evidence": "case: FULL_SEQUENCE_REVERSE_ORDER_no_HELLO (steps field shows 7 opcodes in reverse, all OK responses)",
+      "confidence": 0.93,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/ordering_attack_client.py",
+      "caveat": "NO PROOF that reverse order causes real-backend fault; may be spec-compliant if auth/state-gating is backend responsibility",
+      "no_proof_marker": true
+    },
+    {
+      "id": 3,
+      "claim_short": "Length-prefix desynchronization",
+      "claim_full": "Non-positive declared lengths can desynchronize frame consumption and opcode parsing.",
+      "wiki_source": "non-android-fuzz-findings.md:11-12",
+      "artifact_files": [
+        "tools/sandbox/neg_zero_length_probe.py",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "log_evidence": "server.log shows bytes reinterpreted as opcodes: {, }, u, a, u, t, h appearing as opcode numbers 123, 125, 117, 97 after zero-length frame",
+      "confidence": 0.92,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/neg_zero_length_probe.py",
+      "caveat": "Proof of Python mock behavior only; real C/Rust parser may handle signed/unsigned ints differently",
+      "no_proof_marker": false
+    },
+    {
+      "id": 4,
+      "claim_short": "HASH over-read opcode smuggling",
+      "claim_full": "Over-read smuggling at fixed 32-byte HASH boundary; 33-byte payload causes phantom opcode injection.",
+      "wiki_source": "non-android-fuzz-findings.md:14-15 + exploitability_table:19",
+      "artifact_files": [
+        "tools/sandbox/hash_framing_fuzz.py",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "log_evidence": "server.log line: '<- opcode 8 (UPLOAD_SAVE)' appearing after HASH with no client SEND event; phantom dispatch of 33rd byte",
+      "confidence": 0.93,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/hash_framing_fuzz.py",
+      "caveat": "Boundary condition verified on mock; real backend may have guard checks or frame validation",
+      "no_proof_marker": false
+    },
+    {
+      "id": 5,
+      "claim_short": "HASH under-read socket block",
+      "claim_full": "Under-read holds: 31-byte HASH payload (withholding 1 byte) causes indefinite thread blocking.",
+      "wiki_source": "non-android-fuzz-findings.md:14-15 + exploitability_table:19",
+      "artifact_files": [
+        "tools/sandbox/hash_framing_fuzz.py",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "log_evidence": "server.log + timing: 31-byte payload causes 4s+ socket stall; sending 31st byte later resumes same connection (proof of block, not crash)",
+      "confidence": 0.90,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/hash_framing_fuzz.py",
+      "caveat": "Timing-dependent; real backend likely enforces recv() timeout (mock has none)",
+      "no_proof_marker": false
+    },
+    {
+      "id": 6,
+      "claim_short": "Valid-short-frame tail injection",
+      "claim_full": "Valid short FILE frame with appended bytes can inject follow-on protocol behavior; escalates to thread hang.",
+      "wiki_source": "non-android-fuzz-findings.md:17-18",
+      "artifact_files": [
+        "tools/sandbox/frame_desync_client.py",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "log_evidence": "server.log shows: FILE declared 1B / received 1B immediately followed by <opcode 200>; escalation case with METADATA+length causes handler block (5s+)",
+      "confidence": 0.94,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/frame_desync_client.py",
+      "caveat": "Real backend may have frame-resync recovery logic (mock has none)",
+      "no_proof_marker": false
+    },
+    {
+      "id": 7,
+      "claim_short": "Connection-exhaustion susceptibility",
+      "claim_full": "Many stalled connections can degrade or terminate mock service availability.",
+      "wiki_source": "non-android-fuzz-findings.md:20-21 + exploitability_table:22",
+      "artifact_files": [
+        "tools/sandbox/slowloris_attack.py",
+        "tools/sandbox/campaign_results/20260919_103513/slowloris_attack.log",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "log_evidence": "slowloris_attack.log: 50 connections opened, held 20s, canary probes succeeded (responsiveness maintained). server.log: full crash at 194 concurrent stalled connections (ulimit 200); OSError: [Errno 24] Too many open files.",
+      "confidence": 0.88,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/slowloris_attack.py",
+      "caveat": "Production arch unknown; real backend likely has connection pools, worker thread limits, accept() exception handling",
+      "no_proof_marker": false
+    },
+    {
+      "id": 8,
+      "claim_short": "HELLO continuation-byte acceptance",
+      "claim_full": "Non-OK continuation-byte values are accepted in the mock.",
+      "wiki_source": "non-android-fuzz-findings.md:23-24",
+      "artifact_files": [
+        "tools/sandbox/hello_ack_probe.py",
+        "tools/sandbox/campaign_results/20260919_103513/hello_ack_probe_ack0.log",
+        "tools/sandbox/campaign_results/20260919_103513/hello_ack_probe_ack4.log",
+        "tools/sandbox/campaign_results/20260919_103513/hello_ack_probe_ack12.log",
+        "tools/sandbox/campaign_results/20260919_103513/hello_ack_probe_ack255.log"
+      ],
+      "log_evidence": "4× probe logs (ack values 0, 4, 12, 255) all return {status=ok} response; no rejection or error",
+      "confidence": 0.91,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/hello_ack_probe.py",
+      "caveat": "Mock has no ack validation; real backend may reject invalid ack bytes (spec requires OK=1 only)",
+      "no_proof_marker": false
+    },
+    {
+      "id": 9,
+      "claim_short": "Log control-byte injection",
+      "claim_full": "Unsanitized control bytes can forge/alter mock log output formatting.",
+      "wiki_source": "non-android-fuzz-findings.md:26-27",
+      "artifact_files": [
+        "tools/sandbox/log_injection_probe.py",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "log_evidence": "server.log: CRLF in authToken produces forged log line with exact [port] prefix match, indistinguishable from real logs; ANSI CSI (cursor-up/clear) and OSC-0 (set-terminal-title) escape bytes pass through unescaped, executable on terminal",
+      "confidence": 0.89,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/log_injection_probe.py",
+      "caveat": "Production logging architecture unknown; likely sanitizes output (json.dumps escapes control bytes in real code)",
+      "no_proof_marker": false
+    },
+    {
+      "id": 10,
+      "claim_short": "Running-hash non-reset bug",
+      "claim_full": "Running hash state persists across upload cycles; sha256(A+B) computed instead of per-file validation.",
+      "wiki_source": "tools/sandbox/README.md:~365-370 (verified results section)",
+      "artifact_files": [
+        "tools/sandbox/running_hash_probe.py",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "log_evidence": "Second upload on reused connection: correct per-file sha256(B) rejected as mismatch; server's actual hash is sha256(A+B), verified byte-for-byte against client running total",
+      "confidence": 0.92,
+      "confidence_label": "HIGH",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/running_hash_probe.py",
+      "caveat": "Integrity-check bypass demonstrated on mock; real backend may reset hash per-session or per-upload",
+      "no_proof_marker": false
+    },
+    {
+      "id": 11,
+      "claim_short": "JSON payload shape tolerance",
+      "claim_full": "[Verified results] 16-case JSON-shape battery (duplicate keys, wrong types, nesting, invalid UTF-8) was fully benign.",
+      "wiki_source": "tools/sandbox/README.md:~285-300 (adversarial_json_fuzzer verified results section)",
+      "artifact_files": [
+        "tools/sandbox/adversarial_json_fuzzer.py",
+        "tools/sandbox/campaign_results/20260919_103513/server.log"
+      ],
+      "log_evidence": "All 16 cases: status=ok response; no failures. Caveat: mock never parses JSON (only UTF-8-decodes and logs first 400 chars).",
+      "confidence": 0.70,
+      "confidence_label": "MODERATE",
+      "mock_confirmed": true,
+      "real_backend_verified": false,
+      "test_script": "tools/sandbox/adversarial_json_fuzzer.py",
+      "caveat": "CRITICAL: Mock does not parse JSON at all. Proves transport robustness, NOT parser hardness. Real backend JSON parser likely rejects many of these cases.",
+      "no_proof_marker": false
+    },
+    {
+      "id": 12,
+      "claim_short": "Protocol version enforcement",
+      "claim_full": "Protocol version-3 marker (opcode 3) is enforced; mismatches handled correctly.",
+      "wiki_source": "backend-protocol.md (opcode table)",
+      "artifact_files": [],
+      "log_evidence": "NONE",
+      "confidence": 0.0,
+      "confidence_label": "NONE",
+      "mock_confirmed": false,
+      "real_backend_verified": false,
+      "test_script": "NOT IMPLEMENTED",
+      "caveat": "Opcode 3 reversed from decompiled code; enforcement behavior on mock or real backend never tested",
+      "no_proof_marker": true
+    }
+  ],
+  "no_proof_claims": [
+    {
+      "id": "NP-1",
+      "claim": "Real backend enforces opcode ordering",
+      "wiki_source": "non-android-fuzz-transfer-validation.md:10 (success criterion: Invalid order rejected/state-gated)",
+      "why_no_proof": "Mock accepts all orderings; real backend behavior unknown",
+      "suggested_evidence": "Execute ordering probe against authorized real endpoint",
+      "impact": "CRITICAL — ordering bypass is HIGH severity (8/10 exploitability)"
+    },
+    {
+      "id": "NP-2",
+      "claim": "Real backend rejects non-positive lengths",
+      "wiki_source": "non-android-fuzz-transfer-validation.md:11 (success criterion: Malformed frame rejected)",
+      "why_no_proof": "Mock accepts zero/negative lengths silently; real C parser behavior unknown",
+      "suggested_evidence": "Fuzz real parser with length-prefix attacks",
+      "impact": "CRITICAL — length-desync is HIGH severity (7/10)"
+    },
+    {
+      "id": "NP-3",
+      "claim": "Real backend enforces per-connection timeouts",
+      "wiki_source": "non-android-fuzz-repro.md (expected signals: Timeout/abort enforced)",
+      "why_no_proof": "Mock has no timeouts; HASH under-read stalls forever; slowloris crashes server",
+      "suggested_evidence": "Monitor real backend socket behavior under load; measure recv() timeout if any",
+      "impact": "CRITICAL — timeouts are primary DoS/connection-hold mitigation"
+    },
+    {
+      "id": "NP-4",
+      "claim": "Real backend recovers from frame desync errors",
+      "wiki_source": "sandbox/README.md (frame-desync section)",
+      "why_no_proof": "No frame-resync probe exists; mock escalates to thread hang only",
+      "suggested_evidence": "Send malformed frame, then valid frame; measure recovery latency",
+      "impact": "HIGH — would clarify if real backend can recover from malformed frames or crashes/stalls"
+    },
+    {
+      "id": "NP-5",
+      "claim": "Production log output is sanitized",
+      "wiki_source": "non-android-fuzz-findings.md:26-27 (claim: unsanitized control bytes)",
+      "why_no_proof": "Mock log injection succeeds; production logging architecture unknown",
+      "suggested_evidence": "Inspect real backend log handling (requires access); check if json.dumps is applied",
+      "impact": "MEDIUM — log injection is medium severity (6/10); likely mitigated by json.dumps in real code"
+    },
+    {
+      "id": "NP-6",
+      "claim": "HASH frame is genuinely fixed-length on real backend",
+      "wiki_source": "backend-protocol.md + sandbox/README.md (opcode table: HASH: 32-byte SHA-256)",
+      "why_no_proof": "Reversed from decompiled client code only; never tested against real backend wire format",
+      "suggested_evidence": "Capture real device → backend communication to confirm wire format",
+      "impact": "MEDIUM — confirms HASH boundary assumptions; if wrong, over-read exploit may not work"
+    },
+    {
+      "id": "NP-7",
+      "claim": "Running hash is reset per-session on real backend",
+      "wiki_source": "sandbox/README.md (running_hash_probe verified results, implied as mock-only bug)",
+      "why_no_proof": "Mock confirmed non-reset; real backend behavior unknown",
+      "suggested_evidence": "Test reused connection upload cycle on real backend; compare per-file vs running hash",
+      "impact": "MEDIUM — integrity check completeness; likely mitigated in real backend"
+    },
+    {
+      "id": "NP-8",
+      "claim": "Continuation-byte field must be OK (0x01) on real backend",
+      "wiki_source": "Implied by protocol spec; not documented as tested",
+      "why_no_proof": "Mock accepts any value (0, 4, 12, 255); real backend validation unknown",
+      "suggested_evidence": "Fuzz real backend with invalid ack values; measure acceptance/rejection",
+      "impact": "MEDIUM — ack is medium severity (6/10); simple transfer test"
+    },
+    {
+      "id": "NP-9",
+      "claim": "Protocol version mismatch is detected/rejected on real backend",
+      "wiki_source": "backend-protocol.md (opcode table: 3 = protocol version marker)",
+      "why_no_proof": "Opcode 3 reversed from code; enforcement never tested on mock or real",
+      "suggested_evidence": "Send mismatched protocol versions (v2, v99) to mock and real backend",
+      "impact": "LOW — likely not a real exploit path; version marker may be informational only"
+    }
+  ],
+  "confidence_summary": {
+    "HIGH": {
+      "count": 10,
+      "confidence_range": "0.88–0.95",
+      "findings": [
+        "Ordering/state bypass (0.95)",
+        "Ordering full-reverse sequence (0.93)",
+        "HASH over-read smuggling (0.93)",
+        "Valid-short-frame tail injection (0.94)",
+        "Length-prefix desync (0.92)",
+        "Running-hash non-reset (0.92)",
+        "HELLO continuation-byte acceptance (0.91)",
+        "HASH under-read hold (0.90)",
+        "Log control-byte injection (0.89)",
+        "Connection exhaustion (0.88)"
+      ]
+    },
+    "MODERATE": {
+      "count": 1,
+      "confidence_range": "0.60–0.87",
+      "findings": [
+        "JSON payload shape tolerance (0.70) — caveat: mock doesn't parse JSON"
+      ]
+    },
+    "LOW": {
+      "count": 0,
+      "confidence_range": "0.30–0.59",
+      "findings": []
+    },
+    "NONE": {
+      "count": 1,
+      "confidence_range": "0.0–0.29",
+      "findings": [
+        "Protocol version enforcement (0.0) — never tested"
+      ]
+    }
+  },
+  "evidence_gaps": {
+    "P0_critical": [
+      {
+        "rank": 1,
+        "gap": "Real backend ordering enforcement",
+        "impact": "Blocks transfer of HIGH-severity ordering bypass",
+        "effort": "HIGH (requires authorized endpoint)",
+        "transfer_value": "CRITICAL"
+      },
+      {
+        "rank": 2,
+        "gap": "Real backend length-prefix validation",
+        "impact": "Blocks transfer of HIGH-severity length-desync",
+        "effort": "HIGH (fuzz real parser)",
+        "transfer_value": "CRITICAL"
+      },
+      {
+        "rank": 4,
+        "gap": "Real backend connection timeout enforcement",
+        "impact": "Blocks transfer of connection-exhaustion and HASH under-read findings",
+        "effort": "HIGH (monitor under load)",
+        "transfer_value": "CRITICAL"
+      }
+    ],
+    "P1_high_value": [
+      {
+        "rank": 3,
+        "gap": "Real backend frame-error recovery",
+        "impact": "Clarifies if real backend recovers from malformed frames",
+        "effort": "MEDIUM (<10 min probe design)",
+        "transfer_value": "HIGH"
+      },
+      {
+        "rank": 5,
+        "gap": "Real backend continuation-byte validation",
+        "impact": "Simple transfer test for HELLO ack findings",
+        "effort": "MEDIUM (replay with invalid ack)",
+        "transfer_value": "MEDIUM"
+      }
+    ]
+  },
+  "artifact_inventory": {
+    "json_files": [
+      "tools/sandbox/campaign_results/20260919_103513/ordering_results.json"
+    ],
+    "log_files": [
+      "tools/sandbox/campaign_results/20260919_103513/server.log",
+      "tools/sandbox/campaign_results/20260919_103513/ordering_attack.log",
+      "tools/sandbox/campaign_results/20260919_103513/slowloris_attack.log",
+      "tools/sandbox/campaign_results/20260919_103513/hello_ack_probe_ack0.log",
+      "tools/sandbox/campaign_results/20260919_103513/hello_ack_probe_ack4.log",
+      "tools/sandbox/campaign_results/20260919_103513/hello_ack_probe_ack12.log",
+      "tools/sandbox/campaign_results/20260919_103513/hello_ack_probe_ack255.log"
+    ],
+    "test_scripts": [
+      "tools/sandbox/ordering_attack_client.py",
+      "tools/sandbox/neg_zero_length_probe.py",
+      "tools/sandbox/hash_framing_fuzz.py",
+      "tools/sandbox/frame_desync_client.py",
+      "tools/sandbox/slowloris_attack.py",
+      "tools/sandbox/hello_ack_probe.py",
+      "tools/sandbox/log_injection_probe.py",
+      "tools/sandbox/running_hash_probe.py",
+      "tools/sandbox/adversarial_json_fuzzer.py",
+      "tools/sandbox/upload_server.py",
+      "tools/sandbox/upload_client.py"
+    ],
+    "total_artifacts": 19,
+    "total_volume_bytes": 108576
+  },
+  "methodology_notes": {
+    "scope": "Read-only analysis; no new campaigns executed",
+    "grading_scale": "HIGH (0.88–0.95) | MODERATE (0.60–0.87) | LOW (0.30–0.59) | NONE (0.0–0.29)",
+    "no_proof_marker": "Applied to claims lacking direct artifact evidence (e.g., real-backend behavior, untested opcodes)",
+    "confidence_interpretation": "Score reflects evidence quality on mock; does NOT imply real-backend behavior matches",
+    "boundary": "All findings are mock-only, local sandbox, single-target, no real endpoints or credentials"
+  }
+}
