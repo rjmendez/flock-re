@@ -163,6 +163,12 @@ past an installer SDK-version gate, and nothing else.
   <build-tools>/apksigner sign --ks debug.keystore --ks-pass pass:<pw> \
     --out out-signed.apk out-aligned.apk
   ```
+- `patch_api25_contentresolver_query.py` — rewrites API26+ query invocations
+  (`ContentResolver.query(Uri, String[], Bundle, CancellationSignal)`) in decoded smali to
+  an API25-safe path by injecting a tiny helper class (`Api25CompatQuery`) that calls
+  `query(Uri, String[], String, String[], String)` with null selection/args/sort.
+  This directly addresses API25 `NoSuchMethodError` crashes seen in `CameraSettings` /
+  `ApnHelper` code paths in companion packages.
 - `apktool.jar` itself is **not** vendored here (23MB third-party binary) — fetch it directly
   from its GitHub releases if attempting the full-rebuild path for a *different* APK that
   doesn't hit the adaptive-icon issue above:
