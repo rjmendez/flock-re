@@ -50,6 +50,13 @@ python3 tools/sandbox/binder_camera_fuzz.py --json
 python3 tools/sandbox/reaperd_wire_probe.py --json
 ```
 
+If the emulator image lacks vendor sockets but you still need to execute the virtualized lane:
+
+```bash
+python3 tools/sandbox/binder_camera_fuzz.py --json --virtualized-allow-missing-socket --execute
+python3 tools/sandbox/reaperd_wire_probe.py --json --virtualized-allow-missing-socket
+```
+
 ### Endpoint-map quality gate
 
 Fail endpoint-map completion if normalized host quality is below threshold:

@@ -63,12 +63,23 @@ def _probe_socket(serial: str, path: str, timeout_sec: int) -> CheckResult:
     return CheckResult("reaperd-socket-connect", ok, out.strip() or err)
 
 
+def _check_reaperd_process(serial: str, timeout_sec: int) -> CheckResult:
+    code, out, err = _adb_shell(serial, "ps -A | grep -i reaperd >/dev/null 2>&1; echo $?", timeout_sec)
+    ok = code == 0 and out.strip().endswith("0")
+    return CheckResult("reaperd-process-present", ok, out.strip() or err)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--serial", default="", help="ADB serial; defaults to first emulator-* device.")
     parser.add_argument("--socket-path", default="/dev/socket/reaperd")
     parser.add_argument("--timeout-sec", type=int, default=5)
     parser.add_argument("--execute-connect", action="store_true", help="Attempt bounded socket connect probe.")
+    parser.add_argument(
+        "--virtualized-allow-missing-socket",
+        action="store_true",
+        help="Treat missing socket as non-blocking for virtualized analysis lanes.",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
@@ -92,12 +103,24 @@ def main() -> int:
     if args.execute_connect and len(checks) == 3 and not checks[2].ok:
         blockers.append("Socket connect probe failed (EOF/refusal/timeout).")
 
+    virtualized_override = False
+    virtualized_note = ""
+    if args.virtualized_allow_missing_socket and blockers:
+        process_check = _check_reaperd_process(serial, max(1, args.timeout_sec))
+        checks.append(process_check)
+        if not checks[0].ok and not process_check.ok:
+            virtualized_override = True
+            virtualized_note = "reaperd socket/process absent on target; classified as virtualized-only lane."
+            blockers = []
+
     payload = {
         "ok": len(blockers) == 0,
         "blocked": len(blockers) > 0,
         "serial": serial,
         "socket_path": args.socket_path,
         "execute_connect": args.execute_connect,
+        "virtualized_override": virtualized_override,
+        "virtualized_note": virtualized_note,
         "checks": [{"name": c.name, "ok": c.ok, "detail": c.detail} for c in checks],
         "blockers": blockers,
     }
