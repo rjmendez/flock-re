@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Fetch the DDoSecrets 'Flock ALPR camera' torrent.
 
-Swarm (DHT + opentrackr) plus data.ddosecrets.org added as a web seed: the
-torrent has none, and the HTTP mirror's paths map exactly onto the torrent
-layout, so HTTP covers us if the swarm is thin.
+Peer-network sources (DHT + trackers) plus data.ddosecrets.org as a web seed:
+the torrent has no built-in web seeds, and the HTTP mirror's paths map onto the
+torrent layout.
 """
 import os, sys, time, datetime, libtorrent as lt
 

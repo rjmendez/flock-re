@@ -1,0 +1,8 @@
+HELLO -> {"status": "ok", "mock": true}
+cycle1 FILE(A) size=9000 ack=1
+[1-baseline sha256(A) after FILE(A)] server_returned=OK(1) expected_ok=True -> AS EXPECTED  sha256(A)=ae66415e683b99bf..
+[2-replay sha256(A) with NO new FILE op in between] server_returned=OK(1) expected_ok=True -> AS EXPECTED  if this matches, HASH is not scoped to a preceding FILE op
+cycle3 FILE(B) size=6000 ack=1
+[3-legit sha256(B) after FILE(B), 2nd capture same conn] server_returned=FAIL(0) expected_ok=True -> **UNEXPECTED**  sha256(B)=12df8aea8546a656.. EXPECT SPURIOUS FAIL if running hash never reset
+cycle4 FILE(B) again size=6000 ack=1
+[4-cumulative sha256(A+B) sent instead of sha256(B)] server_returned=FAIL(0) expected_ok=True -> **UNEXPECTED**  sha256(A+B)=52ffb0f274ad3cca.. if MATCH: attacker who tracks running state can pass per-capture integrity check without hash binding to that capture's bytes

@@ -6,9 +6,8 @@ utf-8-decodes the raw bytes and print()s a slice - so a string field containing 
 CR/LF or ANSI/OSC escape byte lands in the server's log verbatim. This client builds
 the wire bytes directly (NOT via json.dumps(), which would escape \\r \\n \\x1b into
 inert literal backslash-sequences and defeat the whole point) so genuine control bytes
-reach the wire inside an otherwise well-formed-looking JSON object. Confirmed result
-(see deep/swarm/adversarial-local-llm/results/log-injection-crlf-ansi/): CRLF forges
-extra log lines that mimic the server's own "[port] ..." prefix format, and ANSI/OSC
+reach the wire inside an otherwise well-formed-looking JSON object. Confirmed result:
+CRLF forges extra log lines that mimic the server's own "[port] ..." prefix format, and ANSI/OSC
 sequences pass through to execute on a real terminal tailing the log. No crash/hang -
 this is a log-integrity bug, not a memory-safety one.
 

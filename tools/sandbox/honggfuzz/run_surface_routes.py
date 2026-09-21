@@ -70,12 +70,14 @@ def build_parser() -> argparse.ArgumentParser:
     camera.add_argument("--serial", default="")
     camera.add_argument("--service", default="media.camera")
     camera.add_argument("--required-socket", default="/data/vendor/camera/cam_socket0")
+    camera.add_argument("--virtualized-allow-missing-socket", action="store_true")
     camera.add_argument("--dry-run", action="store_true", help="Print command only")
 
     reaperd = sub.add_parser("reaperd-preflight", help="run bounded reaperd runtime preflight")
     reaperd.add_argument("--serial", default="")
     reaperd.add_argument("--socket-path", default="/dev/socket/reaperd")
     reaperd.add_argument("--execute-connect", action="store_true")
+    reaperd.add_argument("--virtualized-allow-missing-socket", action="store_true")
     reaperd.add_argument("--dry-run", action="store_true", help="Print command only")
 
     telemetry = sub.add_parser("telemetry-capture", help="collect/parse telemetry simulation dataset")
@@ -153,6 +155,8 @@ def main() -> int:
         ]
         if args.serial:
             cmd.extend(["--serial", args.serial])
+        if args.virtualized_allow_missing_socket:
+            cmd.append("--virtualized-allow-missing-socket")
         return run_cmd(cmd, args.dry_run)
 
     if args.route == "reaperd-preflight":
@@ -169,6 +173,8 @@ def main() -> int:
             cmd.extend(["--serial", args.serial])
         if args.execute_connect:
             cmd.append("--execute-connect")
+        if args.virtualized_allow_missing_socket:
+            cmd.append("--virtualized-allow-missing-socket")
         return run_cmd(cmd, args.dry_run)
 
     if not TELEMETRY_CAPTURE.is_file():

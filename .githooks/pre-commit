@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec python3 "/home/rjmendez/development/flock-re/.githooks/artifact_guard.py" --repo-root "/home/rjmendez/development/flock-re" --staged
