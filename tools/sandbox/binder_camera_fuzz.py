@@ -3,6 +3,8 @@
 
 This tool is local-only and defaults to dry-run. It targets Binder camera services
 (`media.camera` / `media.camera.proxy`) via adb shell commands with strict limits.
+It also enforces runtime preflight checks so absent camera sockets are classified as
+blocked (not done).
 """
 from __future__ import annotations
 
@@ -11,6 +13,7 @@ import json
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 
 ALLOWED_SERVICES = {"media.camera", "media.camera.proxy"}
 
@@ -37,6 +40,64 @@ def _discover_serial() -> str:
     return ""
 
 
+def _adb_shell(serial: str, shell_cmd: str, timeout_sec: int) -> tuple[int, str, str]:
+    return _run(["adb", "-s", serial, "shell", "sh", "-c", shell_cmd], timeout_sec=timeout_sec)
+
+
+@dataclass(frozen=True)
+class PreflightResult:
+    ok: bool
+    checks: list[dict[str, object]]
+    blocker: str
+
+
+def _preflight(serial: str, service: str, required_socket: str, timeout_sec: int) -> PreflightResult:
+    checks: list[dict[str, object]] = []
+
+    service_code, service_out, service_err = _adb_shell(
+        serial,
+        f"service check {service} >/dev/null 2>&1; echo $?",
+        timeout_sec,
+    )
+    service_ok = service_code == 0 and service_out.strip().endswith("0")
+    checks.append(
+        {
+            "name": "binder-service-check",
+            "ok": service_ok,
+            "detail": service_out.strip() or service_err,
+        }
+    )
+
+    socket_code, socket_out, socket_err = _adb_shell(
+        serial,
+        f"test -S {required_socket} >/dev/null 2>&1; echo $?",
+        timeout_sec,
+    )
+    socket_ok = socket_code == 0 and socket_out.strip().endswith("0")
+    checks.append(
+        {
+            "name": "camera-socket-check",
+            "ok": socket_ok,
+            "socket": required_socket,
+            "detail": socket_out.strip() or socket_err,
+        }
+    )
+
+    if not service_ok:
+        return PreflightResult(
+            ok=False,
+            checks=checks,
+            blocker=f"Binder service '{service}' is not reachable on target {serial}.",
+        )
+    if not socket_ok:
+        return PreflightResult(
+            ok=False,
+            checks=checks,
+            blocker=f"Required camera socket missing on target: {required_socket}",
+        )
+    return PreflightResult(ok=True, checks=checks, blocker="")
+
+
 def _build_steps(service: str, max_ops: int) -> list[list[str]]:
     # Deterministic and bounded; these are safe introspection-ish probes.
     base_steps = [
@@ -59,6 +120,12 @@ def main() -> int:
     )
     ap.add_argument("--max-ops", type=int, default=4, help="Maximum bounded probe ops (1-8).")
     ap.add_argument("--timeout-sec", type=int, default=5, help="Per-command timeout in seconds.")
+    ap.add_argument(
+        "--required-socket",
+        default="/data/vendor/camera/cam_socket0",
+        help="Runtime camera socket path that must exist before execution.",
+    )
+    ap.add_argument("--skip-preflight", action="store_true", help="Skip service/socket preflight checks.")
     ap.add_argument("--execute", action="store_true", help="Execute probes (default is dry-run).")
     ap.add_argument("--json", action="store_true", help="Emit JSON output.")
     args = ap.parse_args()
@@ -69,6 +136,31 @@ def main() -> int:
         msg = {"ok": False, "error": "No adb device in state 'device' found.", "dry_run": not args.execute}
         print(json.dumps(msg, indent=2) if args.json else msg["error"])
         return 2
+
+    preflight = PreflightResult(ok=True, checks=[], blocker="")
+    if not args.skip_preflight:
+        preflight = _preflight(
+            serial=serial,
+            service=args.service,
+            required_socket=args.required_socket,
+            timeout_sec=max(1, args.timeout_sec),
+        )
+        if not preflight.ok:
+            payload = {
+                "ok": False,
+                "blocked": True,
+                "serial": serial,
+                "service": args.service,
+                "required_socket": args.required_socket,
+                "dry_run": not args.execute,
+                "blocker": preflight.blocker,
+                "preflight_checks": preflight.checks,
+            }
+            if args.json:
+                print(json.dumps(payload, indent=2))
+            else:
+                print(f"blocked: {preflight.blocker}")
+            return 3
 
     steps = _build_steps(args.service, max_ops)
     commands = [["adb", "-s", serial, "shell"] + step for step in steps]
@@ -94,6 +186,8 @@ def main() -> int:
         "service": args.service,
         "dry_run": not args.execute,
         "max_ops": max_ops,
+        "required_socket": args.required_socket,
+        "preflight_checks": preflight.checks,
         "commands": commands,
         "results": results,
     }
@@ -108,4 +202,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

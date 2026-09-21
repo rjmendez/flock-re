@@ -20,6 +20,11 @@ def test_discover_serial_none_when_no_device(monkeypatch):
 
 def test_main_dry_run_json(monkeypatch, capsys):
     monkeypatch.setattr(binder_camera_fuzz, "_discover_serial", lambda: "emulator-5554")
+    monkeypatch.setattr(
+        binder_camera_fuzz,
+        "_adb_shell",
+        lambda *_args, **_kwargs: (0, "0", ""),
+    )
 
     # invoke via argv for argparse path
     monkeypatch.setattr(
@@ -34,3 +39,25 @@ def test_main_dry_run_json(monkeypatch, capsys):
     assert payload["serial"] == "emulator-5554"
     assert payload["service"] == "media.camera.proxy"
     assert len(payload["commands"]) == 2
+
+
+def test_main_blocked_when_required_socket_missing(monkeypatch, capsys):
+    monkeypatch.setattr(binder_camera_fuzz, "_discover_serial", lambda: "emulator-5554")
+
+    def fake_shell(_serial, shell_cmd, _timeout):
+        if "service check" in shell_cmd:
+            return (0, "0", "")
+        if "test -S" in shell_cmd:
+            return (0, "1", "")
+        raise AssertionError(f"unexpected command: {shell_cmd}")
+
+    monkeypatch.setattr(binder_camera_fuzz, "_adb_shell", fake_shell)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["binder_camera_fuzz.py", "--json", "--service", "media.camera"],
+    )
+    out_rc = binder_camera_fuzz.main()
+    payload = json.loads(capsys.readouterr().out)
+    assert out_rc == 3
+    assert payload["blocked"] is True
+    assert "Required camera socket missing" in payload["blocker"]
