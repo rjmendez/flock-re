@@ -14,6 +14,9 @@ for research and disclosure.
 |---|---|
 | `upload_server.py` | A **mock of Flock's capture-upload server** — the raw-TLS binary protocol reversed from `ConnectionClient`. Logs everything a device sends and is a target you can attack/fuzz. |
 | `upload_client.py` | A **client/attacker** that speaks the same protocol: `--` normal replay of a realistic capture upload, or `--fuzz` to send malformed frames at the parser. |
+| `client_server_emulator.py` | Controllable localhost emulator for fuzzing **client-side** behavior (can inject malformed HELLO responses, FAIL acks, and state-transition mismatches without hitting real infrastructure). |
+| `client_fuzz_harness.py` | Scenario runner that drives `upload_client.py` against `client_server_emulator.py` and writes per-scenario JSON outcomes under `tools/sandbox/campaign_results/client_harness_*`. |
+| `telemetry_sim_capture.py` | Collector/parse pipeline that converts harness summaries into structured telemetry training rows with quality gates and redacted manifests under `artifact-staging/results/telemetry_sim_capture/`. |
 | `gen_cert.sh` | Self-signed TLS cert for the mock (the device does no cert pinning, so any cert works). |
 | `ordering_attack_client.py` | State-machine-bypass ordering attack: opens fresh connections and sends `METADATA`/`FILE`/`HASH`/`UPLOAD_SAVE`/`UPLOAD_COMPLETE` before any `HELLO`, and the whole normal sequence in **reverse opcode order** with no `HELLO` at all, to test whether the server enforces any step ordering or auth prerequisite. `python3 ordering_attack_client.py --port 8443 [--out results.json]`. |
 | `neg_zero_length_probe.py` | Sends the 8-byte BE length prefix as `0`, `-1`, `-2**63` (INT64_MIN / `0x8000000000000000`) and `-2**40` on `HELLO`/`METADATA`/`FILE` (distinct from the existing oversized-positive-length DoS case) to see whether a negative/zero declared length is cast to a huge unsigned size, underflows, or desyncs framing. `python3 neg_zero_length_probe.py --port 8443 [--out results.json]`. |
@@ -25,6 +28,9 @@ for research and disclosure.
 | `slowloris_attack.py` | **Connection/thread-exhaustion (slowloris-style) attack**, distinct from the oversized-length allocation DoS below: opens many concurrent connections and on each sends a small, legitimate-looking `FILE` length header (e.g. 1000) then only 1 body byte, holding the socket open forever with no further data. Exploits the one-thread-per-connection model + no per-socket recv timeout + an unguarded `srv.accept()` in the main loop. `python3 slowloris_attack.py --port 8443 --connections 400 --hold 15 --canary`. Confirmed a full process crash -- see verified results below. |
 | `log_injection_probe.py` | **Log-injection probe**: puts raw CRLF and ANSI/OSC escape bytes directly into the wire bytes of the HELLO `authToken` / METADATA detection fields (bypassing `json.dumps()`, which would otherwise escape them into inert text) to test whether the server's unsanitized `print()`-based logging of received payloads can be used to forge fake log lines or inject terminal-executing escape sequences. `python3 log_injection_probe.py --port 8443`. Confirmed a real log-forging bug (not a crash) -- see verified results below. |
 | `crashpack_coordinate_probe.py` | Offline crash-pack coordinate scanner: recursively scans unpacked crash-log files for likely coordinate evidence (`latitude`, `longitude`, `lat=`, `lon=`, `gps`) and reports per-file hit counts + sample lines, including `ciroc` files. The scan stays within the crashpack root, ignores escape symlinks, and emits explicit read diagnostics instead of silently dropping errors. Use this to verify/refute the current GPS-in-logs contradiction with line-level evidence. `python3 crashpack_coordinate_probe.py /path/to/unpacked/crashpack [--json]`. |
+| `endpoint_map_quality_gate.py` | Endpoint-host normalization quality gate for crashpack endpoint-map claims. Reads `full_crashpack_analysis.json`, computes valid-domain vs uncertain-token ratios, and fails closed when thresholds are not met. |
+| `binder_camera_fuzz.py` | Bounded Binder camera probe lane with mandatory runtime preflight (service reachability + required camera socket check) so missing camera transport is explicitly reported as blocked. |
+| `reaperd_wire_probe.py` | Reaperd runtime preflight/probe lane that checks `/dev/socket/reaperd` presence and optional bounded connect probe before any wire-fuzz claim. |
 | `honggfuzz/` | honggfuzz upload-protocol automation: black-box replay against the Python mock plus a coverage-guided netdriver scaffold. See `tools/sandbox/honggfuzz/README.md`. |
 | `honggfuzz/run_surface_routes.py` | Deterministic route wrapper for undercovered probes: `gps-log` (runs `crashpack_coordinate_probe.py`) and `protocol-control` (runs `hello_ack_probe.py` for HELLO-ack control-plane behavior). Supports `--dry-run` for command-only checks. |
 
@@ -34,6 +40,65 @@ for research and disclosure.
 python3 tools/sandbox/honggfuzz/run_surface_routes.py gps-log --dry-run
 python3 tools/sandbox/honggfuzz/run_surface_routes.py protocol-control --dry-run --plaintext --port 8443 --ack 12
 ```
+
+### Android-runtime preflight probes (camera/reaperd)
+
+These classify target-mismatch blockers explicitly and exit non-zero when prerequisites are absent:
+
+```bash
+python3 tools/sandbox/binder_camera_fuzz.py --json
+python3 tools/sandbox/reaperd_wire_probe.py --json
+```
+
+### Endpoint-map quality gate
+
+Fail endpoint-map completion if normalized host quality is below threshold:
+
+```bash
+python3 tools/sandbox/endpoint_map_quality_gate.py \
+  --analysis-json artifact-staging/fleetlog_real_corpus/full_crashpack_analysis.json \
+  --json-out artifact-staging/results/endpoint_map_quality_gate.json
+```
+
+### Telemetry simulation capture (collector/parse modes)
+
+```bash
+python3 tools/sandbox/telemetry_sim_capture.py --mode collect
+python3 tools/sandbox/telemetry_sim_capture.py --mode parse --min-rows 6
+```
+
+### Client-side fuzz harness (request/response + state transitions)
+
+The harness stays local/emulated-only and captures whether the client tolerates malformed
+server replies or continues after FAIL acks:
+
+```bash
+python3 tools/sandbox/client_fuzz_harness.py
+python3 tools/sandbox/client_fuzz_harness.py --scenario metadata-fail-ack
+```
+
+Output artifacts are written to:
+
+`tools/sandbox/campaign_results/client_harness_<timestamp>/summary.json`
+
+Fail-ack scenarios now also emit redacted decision traces by default:
+
+`artifact-staging/fail_ack_traces/fail-ack-<scenario>.json`
+
+### Default validation runner
+
+Run the default local validation bundle (harness + hardening pytest) and generate redacted summaries:
+
+```bash
+python3 tools/sandbox/validation_runner.py
+```
+
+Summary artifacts are written to:
+
+- `artifact-staging/results/sandbox_validation_summary_redacted.json`
+- `artifact-staging/results/sandbox_validation_summary_redacted.md`
+
+The runner exits non-zero when harness mismatches or test failures are present.
 
 ### The reversed wire protocol (from `flock-st-germain/ConnectionClient`)
 Single-byte opcodes; 8-byte **big-endian** length prefixes (`ByteBuffer.putLong`); SHA-256; 2800-byte chunks.
