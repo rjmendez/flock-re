@@ -10,18 +10,21 @@ fresh signature is applied afterwards with apksigner).
 """
 import sys
 import zipfile
+from pathlib import Path
 
-SRC_APK = '/home/rjmendez/flock-alpr/re/android-fs/system/app/flock-object/flock-object.apk'
-PATCHED_MANIFEST = '/home/rjmendez/flock-alpr/re/deep/swarm/jni-harness/patch/rawmanifest/AndroidManifest.xml.patched.bin'
-OUT_APK = sys.argv[1] if len(sys.argv) > 1 else '/home/rjmendez/flock-alpr/re/deep/swarm/jni-harness/patch/flock-object-patched-unsigned.apk'
+ROOT = Path(__file__).resolve().parents[3]
+HERE = Path(__file__).resolve().parent
+SRC_APK = ROOT / 'android-fs/system/app/flock-object/flock-object.apk'
+PATCHED_MANIFEST = HERE / 'rawmanifest/AndroidManifest.xml.patched.bin'
+OUT_APK = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / 'flock-object-patched-unsigned.apk'
 
 with open(PATCHED_MANIFEST, 'rb') as f:
     patched_manifest = f.read()
 
-zin = zipfile.ZipFile(SRC_APK, 'r')
+zin = zipfile.ZipFile(str(SRC_APK), 'r')
 changed = []
 skipped_signing = []
-with zipfile.ZipFile(OUT_APK, 'w', allowZip64=True) as zout:
+with zipfile.ZipFile(str(OUT_APK), 'w', allowZip64=True) as zout:
     for item in zin.infolist():
         name = item.filename
         if name.startswith('META-INF/') and (

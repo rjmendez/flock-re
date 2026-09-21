@@ -43,6 +43,11 @@ def test_main_dry_run_json(monkeypatch, capsys):
 
 def test_main_blocked_when_required_socket_missing(monkeypatch, capsys):
     monkeypatch.setattr(binder_camera_fuzz, "_discover_serial", lambda: "emulator-5554")
+    monkeypatch.setattr(
+        binder_camera_fuzz,
+        "_target_fingerprint",
+        lambda *_args, **_kwargs: "vendor/flock/device:9/PQ3A/123:user/release-keys",
+    )
 
     def fake_shell(_serial, shell_cmd, _timeout):
         if "service check" in shell_cmd:
@@ -61,3 +66,55 @@ def test_main_blocked_when_required_socket_missing(monkeypatch, capsys):
     assert out_rc == 3
     assert payload["blocked"] is True
     assert "Required camera socket missing" in payload["blocker"]
+
+
+def test_main_virtualized_mode_allows_missing_socket(monkeypatch, capsys):
+    monkeypatch.setattr(binder_camera_fuzz, "_discover_serial", lambda: "emulator-5554")
+    monkeypatch.setattr(
+        binder_camera_fuzz,
+        "_target_fingerprint",
+        lambda *_args, **_kwargs: "vendor/flock/device:9/PQ3A/123:user/release-keys",
+    )
+
+    def fake_shell(_serial, shell_cmd, _timeout):
+        if "service check" in shell_cmd:
+            return (0, "0", "")
+        if "test -S" in shell_cmd:
+            return (0, "1", "")
+        raise AssertionError(f"unexpected command: {shell_cmd}")
+
+    monkeypatch.setattr(binder_camera_fuzz, "_adb_shell", fake_shell)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["binder_camera_fuzz.py", "--json", "--virtualized-allow-missing-socket"],
+    )
+    out_rc = binder_camera_fuzz.main()
+    payload = json.loads(capsys.readouterr().out)
+    assert out_rc == 0
+    assert payload["ok"] is True
+    assert payload["preflight_degraded"] is True
+
+
+def test_main_aosp_profile_allows_missing_socket_without_override(monkeypatch, capsys):
+    monkeypatch.setattr(binder_camera_fuzz, "_discover_serial", lambda: "emulator-5554")
+    monkeypatch.setattr(
+        binder_camera_fuzz,
+        "_target_fingerprint",
+        lambda *_args, **_kwargs: "google/sdk_gphone_x86/generic_x86:8.1.0/OSM/userdebug/dev-keys",
+    )
+
+    def fake_shell(_serial, shell_cmd, _timeout):
+        if "service check" in shell_cmd:
+            return (0, "0", "")
+        if "test -S" in shell_cmd:
+            return (0, "1", "")
+        raise AssertionError(f"unexpected command: {shell_cmd}")
+
+    monkeypatch.setattr(binder_camera_fuzz, "_adb_shell", fake_shell)
+    monkeypatch.setattr("sys.argv", ["binder_camera_fuzz.py", "--json"])
+    out_rc = binder_camera_fuzz.main()
+    payload = json.loads(capsys.readouterr().out)
+    assert out_rc == 0
+    assert payload["ok"] is True
+    assert payload["preflight_degraded"] is False
+    assert payload["preflight_profile"] == "aosp_emulator_binder_only"

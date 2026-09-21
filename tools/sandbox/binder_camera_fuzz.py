@@ -41,7 +41,19 @@ def _discover_serial() -> str:
 
 
 def _adb_shell(serial: str, shell_cmd: str, timeout_sec: int) -> tuple[int, str, str]:
-    return _run(["adb", "-s", serial, "shell", "sh", "-c", shell_cmd], timeout_sec=timeout_sec)
+    return _run(["adb", "-s", serial, "shell", shell_cmd], timeout_sec=timeout_sec)
+
+
+def _target_fingerprint(serial: str, timeout_sec: int) -> str:
+    code, out, _ = _adb_shell(serial, "getprop ro.build.fingerprint", timeout_sec)
+    if code != 0:
+        return ""
+    return out.strip()
+
+
+def _is_aosp_emulator_fingerprint(fingerprint: str) -> bool:
+    text = fingerprint.lower()
+    return text.startswith("google/sdk_") and "generic_x86" in text
 
 
 @dataclass(frozen=True)
@@ -125,6 +137,11 @@ def main() -> int:
         default="/data/vendor/camera/cam_socket0",
         help="Runtime camera socket path that must exist before execution.",
     )
+    ap.add_argument(
+        "--virtualized-allow-missing-socket",
+        action="store_true",
+        help="Allow execution when socket is absent if Binder service is reachable (virtualized lane mode).",
+    )
     ap.add_argument("--skip-preflight", action="store_true", help="Skip service/socket preflight checks.")
     ap.add_argument("--execute", action="store_true", help="Execute probes (default is dry-run).")
     ap.add_argument("--json", action="store_true", help="Emit JSON output.")
@@ -138,6 +155,9 @@ def main() -> int:
         return 2
 
     preflight = PreflightResult(ok=True, checks=[], blocker="")
+    preflight_degraded = False
+    preflight_note = ""
+    preflight_profile = "vendor_socket_runtime"
     if not args.skip_preflight:
         preflight = _preflight(
             serial=serial,
@@ -146,21 +166,36 @@ def main() -> int:
             timeout_sec=max(1, args.timeout_sec),
         )
         if not preflight.ok:
-            payload = {
-                "ok": False,
-                "blocked": True,
-                "serial": serial,
-                "service": args.service,
-                "required_socket": args.required_socket,
-                "dry_run": not args.execute,
-                "blocker": preflight.blocker,
-                "preflight_checks": preflight.checks,
-            }
-            if args.json:
-                print(json.dumps(payload, indent=2))
+            service_ok = any(check["name"] == "binder-service-check" and check["ok"] for check in preflight.checks)
+            socket_missing = any(check["name"] == "camera-socket-check" and not check["ok"] for check in preflight.checks)
+            fingerprint = _target_fingerprint(serial, max(1, args.timeout_sec))
+            aosp_emulator = _is_aosp_emulator_fingerprint(fingerprint)
+            if service_ok and socket_missing and aosp_emulator:
+                preflight_profile = "aosp_emulator_binder_only"
+                preflight_note = (
+                    "AOSP emulator profile detected; binder camera service is reachable and vendor camera socket is not required."
+                )
+            elif args.virtualized_allow_missing_socket and service_ok and socket_missing:
+                preflight_degraded = True
+                preflight_note = (
+                    "Missing camera socket accepted in virtualized lane mode because Binder service is reachable."
+                )
             else:
-                print(f"blocked: {preflight.blocker}")
-            return 3
+                payload = {
+                    "ok": False,
+                    "blocked": True,
+                    "serial": serial,
+                    "service": args.service,
+                    "required_socket": args.required_socket,
+                    "dry_run": not args.execute,
+                    "blocker": preflight.blocker,
+                    "preflight_checks": preflight.checks,
+                }
+                if args.json:
+                    print(json.dumps(payload, indent=2))
+                else:
+                    print(f"blocked: {preflight.blocker}")
+                return 3
 
     steps = _build_steps(args.service, max_ops)
     commands = [["adb", "-s", serial, "shell"] + step for step in steps]
@@ -188,6 +223,9 @@ def main() -> int:
         "max_ops": max_ops,
         "required_socket": args.required_socket,
         "preflight_checks": preflight.checks,
+        "preflight_profile": preflight_profile,
+        "preflight_degraded": preflight_degraded,
+        "preflight_note": preflight_note,
         "commands": commands,
         "results": results,
     }
