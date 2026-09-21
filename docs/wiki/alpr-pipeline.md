@@ -37,6 +37,10 @@ the crop→cloud step sends, without touching any live service. A static reprodu
 detectors on synthetic inputs) is already in `tools/modeltest/detect.py`; the live-JNI harness is
 future work, listed here so the claim is checkable rather than asserted.
 
+For the first native-only fuzzing pass, see `tools/jni-harness/afl-frida/`: it keeps the input
+shape explicit and starts from `libnativeImageUtils.so`-style non-JNI code before layering on the
+JNI path.
+
 ## Runtime behavior (confirmed from crash-pack logs)
 - The live on-device detector is a **single native YOLO** (`yolo_pico3_float16` via `nativeML`),
   constant across 6 months, running **CPU-only** (no GPU/NNAPI/DSP delegate in logs).

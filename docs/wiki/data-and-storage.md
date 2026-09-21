@@ -83,7 +83,8 @@ alone would not necessarily purge that separately-staged media store — a secon
 wasn't present in this dump, so the exact scope of "media partition" isn't independently
 confirmed here — flagged as an open follow-up rather than asserted as fact.
 
-Evidence: `deep/swarm/factory-reset-data-remnants/FINDINGS.md`.
+Evidence: code-path and partition analysis documented in this wiki and reproducible via
+the tool paths referenced below.
 
 ## On-device databases (schemas recovered from app code, not from userdata)
 The apps use Room (SQLite); the `CREATE TABLE` SQL is embedded in the app code, so schemas are

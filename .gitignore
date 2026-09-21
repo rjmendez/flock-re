@@ -58,5 +58,13 @@ venv/
 heartbeat
 DONE
 
-# Local agent orchestration (not a repository artifact)
+# Local runtime orchestration state (not a repository artifact)
 workflow/
+
+
+
+
+# Artifact staging and sandbox campaign outputs
+artifact-staging/
+tools/sandbox/campaign_results/
+tools/sandbox/honggfuzz/runtime/

@@ -45,8 +45,7 @@ independent verification method closer to the camera's real execution environmen
 process invoking the model through the app's own code path — rather than only a bare Python
 harness. This harness's network egress was verified live-blocked throughout
 (`iptables -P OUTPUT DROP`), and, as above, no captured/real device data was used; the input was
-procedurally generated. Cite: `deep/swarm/jni-harness/FINDINGS.md`. Reproduce:
-`tools/jni-harness/README.md`.
+procedurally generated. Reproduce: `tools/jni-harness/README.md`.
 
 ## See also
 - [ALPR pipeline](alpr-pipeline.md) · [Apps](apps.md) · [Claims vs evidence](claims-vs-evidence.md)

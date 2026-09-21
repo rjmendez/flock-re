@@ -3,9 +3,8 @@
 Runs the extracted Flock Falcon native ML library / TFLite models in an **emulated, offline
 environment** to observe real behavior — never against a real device or a real Flock backend.
 Every input is synthetic (procedurally generated or hand-drawn primitives); no captured
-plate/photo/PII from the dump is ever used. Full status, evidence, and the AVD/ABI blocker
-write-up live in the dump's evidence tree: `<dump>/deep/swarm/jni-harness/FINDINGS.md`
-(not committed here — see `tools/README.md`'s "Reproduce" section for the dump layout).
+plate/photo/PII from the dump is ever used. Reproduction details are documented in this
+directory and in `tools/README.md`.
 
 ## Component A — TFLite-only path (working)
 
@@ -99,8 +98,8 @@ app run. It stops on `NoSuchMethodError` for `ContentResolver`'s 4-arg
 from this OS, called from at least 3 sites in the app (`CameraSettings.kt:319`, `:569`,
 `ApnHelper.kt:317`; everywhere else already uses the always-valid 5-arg legacy form).
 
-### `frida/coreValues_hook.js` - Wave 6 caller-level wrapper hooks
-The narrow Wave 6 loop keeps the workaround at app-level wrappers rather than patching absent
+### `frida/coreValues_hook.js` - Iteration 6 caller-level wrapper hooks
+The narrow Iteration 6 loop keeps the workaround at app-level wrappers rather than patching absent
 framework APIs. The active bypass stack now includes:
 - `CameraSettings.getSettingsFromContentProvider(Context)` / legacy `getCoreValues*` wrappers to bypass API-26 `ContentResolver.query(..., Bundle, CancellationSignal)` call sites.
 - `FlockBootstrapperActivity.onStart()` API<26 compatibility path that replaces `startForegroundService(...)` with `startService(...)`.
@@ -113,7 +112,7 @@ frida -U -f com.flocksafety.android.objects -l tools/jni-harness/frida/coreValue
 Expected signal:
 ```
 [HOOK] CameraSettings wrapper hook active for: ...
-[HOOK] getSettingsFromContentProvider(android.content.Context) called - narrow Wave 6 caller-side bypass before API26+ ContentResolver.query(Uri,String[],Bundle,CancellationSignal).
+[HOOK] getSettingsFromContentProvider(android.content.Context) called - narrow Iteration 6 caller-side bypass before API26+ ContentResolver.query(Uri,String[],Bundle,CancellationSignal).
 [HOOK] FlockBootstrapperActivity.onStart compatibility hook active - replacing API26 startForegroundService() with startService().
 [HOOK] FlockForegroundService.onStartCommand(...) bypassed before scheduled-thread startup on API<26.
 ```
@@ -130,6 +129,28 @@ interception) remains prepared for once execution reaches that far.
 
 Full narrative, every log, and the "if picking this back up" next steps:
 dump's `FINDINGS.md`, in the section covering the validated setup.
+
+### Component C — AFL++ / Frida scaffold for the ARM32 native layer
+
+The new `afl-frida/` subtree is the lower-friction starting point for coverage-guided fuzzing of
+the ARM32 native path, beginning with `libnativeImageUtils.so`-style code that does not require a
+JNI bridge first.
+
+```bash
+cd tools/jni-harness/afl-frida
+./bin/setup.sh
+export ANDROID_NDK_ROOT=/path/to/android-ndk
+export AFLPP_ROOT=/path/to/AFLplusplus
+export TARGET_SO_PATH=/path/to/extracted/libnativeImageUtils.so
+export TARGET_SYMBOL=<real_native_symbol>
+export TARGET_CALL_MODE=image_frame
+./bin/build-harness.sh
+./bin/run.sh --dry-run
+```
+
+Input contract and outputs are documented in `afl-frida/README.md`. The run wrapper enforces the
+known-good Frida pin (`16.1.4`) and refuses to continue if the host/device pairing does not match.
+If you point this at the emulator, keep the ARM32/TCG caveat in mind: it works, but it is slow.
 
 ## Manifest patch tooling (`manifest-patch/`)
 
