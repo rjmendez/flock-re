@@ -13,6 +13,13 @@ stay untracked — see `.gitignore`.
 plus a [claims-vs-evidence](docs/wiki/claims-vs-evidence.md) page testing Flock's public
 statements against the firmware. Hostnames and secrets are obfuscated.
 
+Documentation standard: narrative analysis belongs in `docs/wiki/`; raw runtime evidence
+(logs/JSON command outputs) belongs in `tools/*/campaign_results/` or equivalent artifact
+directories. Avoid publishing process/tool provenance notes.
+
+Contributor note: generated artifact outputs under artifact-staging/, tools/sandbox/campaign_results/, and tools/sandbox/honggfuzz/runtime/ stay local-only. These are protected by .gitignore and the repo pre-commit guard, so they are never committed.
+
+
 ## Tools
 
 - **`tools/download/bt.py`** — libtorrent fetcher for the dump. Resumable, adds a
@@ -23,3 +30,5 @@ statements against the firmware. Hostnames and secrets are obfuscated.
 - **`tools/schema/extract_capture_schema.sh`** — reproduces the on-device capture-record
   schema findings (no plate-text column, detection geometry/class only, no GPS/IMU) from
   a directory of jadx-decompiled sources. Static, offline, read-only.
+
+

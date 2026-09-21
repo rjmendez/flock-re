@@ -67,7 +67,7 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   [Backend protocol](backend-protocol.md).
 - **Other secrets in logs** — password strings and live LTE cell-tower IDs (`modemInfo.txt`).
 
-## Deeper pass (surface swarm)
+## Deeper pass (surface expansion)
 - **Unauthenticated servicing server** (`collins` :8080, system UID, 21 routes incl. ADB→RCE and
   ALPR-DB exfil), reachable over an installer Wi-Fi AP with a hardcoded key. See [Local attack surface](local-attack-surface.md).
 - **Backend can overwrite any camera setting** (no signature) and mint fleet credentials from a
@@ -91,7 +91,7 @@ depends on runtime/backend behavior it's marked *(static-only)*.
   reference), not by any deliberate persist-wipe carve-out being skipped. See
   [Data & storage](data-and-storage.md).
 
-## Deeper pass II (8-area deep-think swarm)
+## Deeper pass II (8-area deep-think)
 - **All 5 public GainSec CVEs reproduce against this dump** — CVE-2025-47822/47823/47824 and
   59403/59405 each map to concrete code/config in this image (independent confirmation, not just
   citing the advisory). See [Local attack surface](local-attack-surface.md), [Crash logs](crash-logs.md).
@@ -134,10 +134,24 @@ depends on runtime/backend behavior it's marked *(static-only)*.
 2. Close credential leaks (provider export/permission model and token logging).
 3. Restrict unauthenticated local export/control surfaces (`DatabaseExportReceiver`, `reaperd` socket).
 
+## Execution/tooling update (B2B-gated)
+- **Completed lanes (execution-grounded):**
+  - protocol state-order/replay probing against the local upload mock (bounded campaign),
+  - SELinux policy reachability proof for the export chain (`untrusted_app_all` -> `media_rw_data_file`),
+  - token-surface abuse checks in the sandbox chain model,
+  - OTA/app-layer update-path review (endpoint + hash/rollback behavior in available artifacts).
+- **Runtime-blocked lanes (now with concrete blocker proof):**
+  - reaperd wire probe: attached target lacked the required UNIX-socket probe transport path
+    for the current harness and no validated reaperd runtime socket was reachable.
+  - camera-daemon boundary probe: expected camera runtime socket path was absent on the attached
+    emulator target.
+- **Method update:** acceptance criteria now require explicit B2B evidence per lane (command,
+  artifact path, key output) before findings are promoted beyond *likely*.
+
 ## Boundaries of this project
 No contact with any live service; no credential used against any endpoint (validity untested by
 design); captured media/personal records never extracted. For education and responsible
 disclosure only.
 
 ## See also
-- [Boot chain](boot-chain.md) · [Local attack surface](local-attack-surface.md) · [Backend protocol](backend-protocol.md) · [Data & storage](data-and-storage.md)
+- [Boot chain](boot-chain.md) · [Local attack surface](local-attack-surface.md) · [Backend protocol](backend-protocol.md) · [Data & storage](data-and-storage.md) · [Non-Android protocol fuzz research](non-android-fuzz-research.md)

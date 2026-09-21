@@ -70,7 +70,7 @@ with **no authentication on any route**.
   this dump (no `seapp_contexts` file or `sesearch`/`seinfo` binary present). Flagged as open, not
   asserted either way — a live-device test would be needed to resolve it.
 
-Evidence: `deep/swarm/confused-deputy-chain/FINDINGS.md`.
+Evidence: decompiled manifests/code paths and local tool notes referenced in this wiki.
 
 ## Root / watchdog
 - **`reaperd`** (FlockReaperDaemon) runs as **root** with a **world-writable (0666) command

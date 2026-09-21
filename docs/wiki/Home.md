@@ -13,6 +13,7 @@ firmware leak. Static analysis only. Backend hostnames and all secrets are obfus
 ## Security
 - [Security posture](security-posture.md) — confirmed findings, ranked
 - [Local attack surface](local-attack-surface.md) — exported components, remote debug
+- [Non-Android protocol fuzz research](non-android-fuzz-research.md) — reproducibility pack and transfer plan
 
 ## Firmware layout
 - [Partition map](partition-map.md)
@@ -33,6 +34,7 @@ firmware leak. Static analysis only. Backend hostnames and all secrets are obfus
 ## Meta
 - [Prior work & what's new](prior-work.md) — public coverage vs this project's contribution
 - [Claims vs evidence](claims-vs-evidence.md) — Flock statements tested against the firmware
+- [Documentation standard](documentation-standard.md) — where narrative docs vs raw artifacts belong
 
 ## Reference
 - [Glossary](glossary.md) — plain-language terms

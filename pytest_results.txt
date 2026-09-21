@@ -1,0 +1,34 @@
+[1m============================= test session starts =============================[0m
+platform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: \\wsl$\Ubuntu\home\rjmendez\development\flock-re
+plugins: anyio-4.12.1
+[1mcollecting ... [0mcollected 25 items
+
+tools/sandbox/tests/test_upload_server_hardening.py::test_read_len_rejects_non_positive_and_oversized [32mPASSED[0m[32m [  4%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_hello_negative_or_zero_length_fails_closed[0] [32mPASSED[0m[32m [  8%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_hello_negative_or_zero_length_fails_closed[-1] [32mPASSED[0m[32m [ 12%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_hello_negative_or_zero_length_fails_closed[-9223372036854775808] [32mPASSED[0m[32m [ 16%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_hello_negative_or_zero_length_fails_closed[-1099511627776] [32mPASSED[0m[32m [ 20%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_hello_oversized_length_fails_closed [32mPASSED[0m[32m [ 24%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_hello_min_valid_length_succeeds [32mPASSED[0m[32m [ 28%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_hello_max_valid_length_succeeds [32mPASSED[0m[32m [ 32%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_metadata_negative_or_zero_length_fails_closed[0] [32mPASSED[0m[32m [ 36%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_metadata_negative_or_zero_length_fails_closed[-1] [32mPASSED[0m[32m [ 40%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_metadata_negative_or_zero_length_fails_closed[-9223372036854775808] [32mPASSED[0m[32m [ 44%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_metadata_negative_or_zero_length_fails_closed[-1099511627776] [32mPASSED[0m[32m [ 48%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_metadata_oversized_length_fails_closed [32mPASSED[0m[32m [ 52%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_metadata_min_valid_length_succeeds [32mPASSED[0m[32m [ 56%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_metadata_max_valid_length_succeeds [32mPASSED[0m[32m [ 60%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_file_negative_or_zero_length_fails_closed[0] [32mPASSED[0m[32m [ 64%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_file_negative_or_zero_length_fails_closed[-1] [32mPASSED[0m[32m [ 68%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_file_negative_or_zero_length_fails_closed[-9223372036854775808] [32mPASSED[0m[32m [ 72%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_file_negative_or_zero_length_fails_closed[-1099511627776] [32mPASSED[0m[32m [ 76%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_file_oversized_length_fails_closed [32mPASSED[0m[32m [ 80%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_file_min_valid_length_succeeds [32mPASSED[0m[32m [ 84%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_file_max_valid_length_succeeds [32mPASSED[0m[32m [ 88%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_server_remains_responsive_after_hello_boundary_violation [32mPASSED[0m[32m [ 92%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_unknown_opcode_fails_closed [32mPASSED[0m[32m [ 96%][0m
+tools/sandbox/tests/test_upload_server_hardening.py::test_invalid_file_length_fails_closed [32mPASSED[0m[32m [100%][0m
+
+[32m============================= [32m[1m25 passed[0m[32m in 6.39s[0m[32m ==============================[0m
