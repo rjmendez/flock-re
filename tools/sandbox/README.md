@@ -57,6 +57,11 @@ python3 tools/sandbox/binder_camera_fuzz.py --json --virtualized-allow-missing-s
 python3 tools/sandbox/reaperd_wire_probe.py --json --virtualized-allow-missing-socket
 ```
 
+On AOSP emulator fingerprints (`google/sdk_*` + `generic_x86`), strict preflight now auto-switches
+to target profile behavior:
+- camera lane uses binder-service readiness even when `/data/vendor/camera/cam_socket0` is absent,
+- reaperd lane is marked `not_applicable_on_aosp_emulator` when both socket and process are absent.
+
 ### Endpoint-map quality gate
 
 Fail endpoint-map completion if normalized host quality is below threshold:

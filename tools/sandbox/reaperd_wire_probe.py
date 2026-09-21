@@ -34,7 +34,19 @@ def _discover_serial() -> str:
 
 
 def _adb_shell(serial: str, shell_cmd: str, timeout_sec: int) -> tuple[int, str, str]:
-    return _run(["adb", "-s", serial, "shell", "sh", "-c", shell_cmd], timeout_sec=timeout_sec)
+    return _run(["adb", "-s", serial, "shell", shell_cmd], timeout_sec=timeout_sec)
+
+
+def _target_fingerprint(serial: str, timeout_sec: int) -> str:
+    code, out, _ = _adb_shell(serial, "getprop ro.build.fingerprint", timeout_sec)
+    if code != 0:
+        return ""
+    return out.strip()
+
+
+def _is_aosp_emulator_fingerprint(fingerprint: str) -> bool:
+    text = fingerprint.lower()
+    return text.startswith("google/sdk_") and "generic_x86" in text
 
 
 @dataclass(frozen=True)
@@ -105,6 +117,19 @@ def main() -> int:
 
     virtualized_override = False
     virtualized_note = ""
+    applicability = "runtime_socket_lane"
+    fingerprint = _target_fingerprint(serial, max(1, args.timeout_sec))
+    aosp_emulator = _is_aosp_emulator_fingerprint(fingerprint)
+    if not checks[0].ok and aosp_emulator:
+        process_check = _check_reaperd_process(serial, max(1, args.timeout_sec))
+        checks.append(process_check)
+        if not process_check.ok:
+            applicability = "not_applicable_on_aosp_emulator"
+            virtualized_note = (
+                "AOSP emulator profile detected with no reaperd socket/process; lane marked not-applicable instead of blocked."
+            )
+            blockers = []
+
     if args.virtualized_allow_missing_socket and blockers:
         process_check = _check_reaperd_process(serial, max(1, args.timeout_sec))
         checks.append(process_check)
@@ -119,6 +144,8 @@ def main() -> int:
         "serial": serial,
         "socket_path": args.socket_path,
         "execute_connect": args.execute_connect,
+        "target_fingerprint": fingerprint,
+        "lane_applicability": applicability,
         "virtualized_override": virtualized_override,
         "virtualized_note": virtualized_note,
         "checks": [{"name": c.name, "ok": c.ok, "detail": c.detail} for c in checks],

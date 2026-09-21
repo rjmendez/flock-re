@@ -41,7 +41,19 @@ def _discover_serial() -> str:
 
 
 def _adb_shell(serial: str, shell_cmd: str, timeout_sec: int) -> tuple[int, str, str]:
-    return _run(["adb", "-s", serial, "shell", "sh", "-c", shell_cmd], timeout_sec=timeout_sec)
+    return _run(["adb", "-s", serial, "shell", shell_cmd], timeout_sec=timeout_sec)
+
+
+def _target_fingerprint(serial: str, timeout_sec: int) -> str:
+    code, out, _ = _adb_shell(serial, "getprop ro.build.fingerprint", timeout_sec)
+    if code != 0:
+        return ""
+    return out.strip()
+
+
+def _is_aosp_emulator_fingerprint(fingerprint: str) -> bool:
+    text = fingerprint.lower()
+    return text.startswith("google/sdk_") and "generic_x86" in text
 
 
 @dataclass(frozen=True)
@@ -145,6 +157,7 @@ def main() -> int:
     preflight = PreflightResult(ok=True, checks=[], blocker="")
     preflight_degraded = False
     preflight_note = ""
+    preflight_profile = "vendor_socket_runtime"
     if not args.skip_preflight:
         preflight = _preflight(
             serial=serial,
@@ -155,7 +168,14 @@ def main() -> int:
         if not preflight.ok:
             service_ok = any(check["name"] == "binder-service-check" and check["ok"] for check in preflight.checks)
             socket_missing = any(check["name"] == "camera-socket-check" and not check["ok"] for check in preflight.checks)
-            if args.virtualized_allow_missing_socket and service_ok and socket_missing:
+            fingerprint = _target_fingerprint(serial, max(1, args.timeout_sec))
+            aosp_emulator = _is_aosp_emulator_fingerprint(fingerprint)
+            if service_ok and socket_missing and aosp_emulator:
+                preflight_profile = "aosp_emulator_binder_only"
+                preflight_note = (
+                    "AOSP emulator profile detected; binder camera service is reachable and vendor camera socket is not required."
+                )
+            elif args.virtualized_allow_missing_socket and service_ok and socket_missing:
                 preflight_degraded = True
                 preflight_note = (
                     "Missing camera socket accepted in virtualized lane mode because Binder service is reachable."
@@ -203,6 +223,7 @@ def main() -> int:
         "max_ops": max_ops,
         "required_socket": args.required_socket,
         "preflight_checks": preflight.checks,
+        "preflight_profile": preflight_profile,
         "preflight_degraded": preflight_degraded,
         "preflight_note": preflight_note,
         "commands": commands,
