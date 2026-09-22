@@ -128,8 +128,9 @@ def serial_worker(args, serial: str) -> dict:
     results_dir = Path(args.results_dir).resolve()
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    worker_result = {"serial": serial, "mode": args.mode, "endpoint": None, "live": None}
-    if args.mode in ("endpoint", "both"):
+    mode = args.serial_mode_map.get(serial, args.mode)
+    worker_result = {"serial": serial, "mode": mode, "endpoint": None, "live": None}
+    if mode in ("endpoint", "both"):
         worker_result["endpoint"] = run_endpoint_campaign(
             python_exe=sys.executable,
             root=root,
@@ -138,7 +139,7 @@ def serial_worker(args, serial: str) -> dict:
             endpoint_runs=args.endpoint_runs,
             guidance_file=args.guidance_file,
         )
-    if args.mode in ("live", "both"):
+    if mode in ("live", "both"):
         worker_result["live"] = run_live_fuzz(
             python_exe=sys.executable,
             root=root,
@@ -161,6 +162,11 @@ def parse_args():
     )
     ap.add_argument("--serials", required=True, help="Comma-separated adb serials, e.g. emulator-5554,emulator-5556")
     ap.add_argument("--mode", choices=["endpoint", "live", "both"], default="both")
+    ap.add_argument(
+        "--serial-modes",
+        default="",
+        help="Optional per-serial mode overrides, e.g. emulator-5554:endpoint,emulator-5556:live",
+    )
     ap.add_argument("--endpoint-runs", type=int, default=5)
     ap.add_argument("--guidance-file", default="")
     ap.add_argument("--adb-path", default=str(default_adb))
@@ -179,6 +185,18 @@ def main() -> int:
     if not serials:
         print("[ERROR] No valid serials parsed from --serials", file=sys.stderr)
         return 1
+    serial_mode_map = {}
+    if args.serial_modes:
+        for pair in args.serial_modes.split(","):
+            pair = pair.strip()
+            if not pair or ":" not in pair:
+                continue
+            serial, mode = pair.split(":", 1)
+            serial = serial.strip()
+            mode = mode.strip()
+            if serial and mode in {"endpoint", "live", "both"}:
+                serial_mode_map[serial] = mode
+    args.serial_mode_map = serial_mode_map
 
     started = datetime.now(timezone.utc).isoformat()
     results = []
@@ -199,6 +217,7 @@ def main() -> int:
         "serial_count": len(serials),
         "serials": serials,
         "mode": args.mode,
+        "serial_mode_overrides": serial_mode_map,
         "results": results,
     }
     out = Path(args.results_dir) / f"parallel_fuzz_summary_{now_stamp()}.json"
