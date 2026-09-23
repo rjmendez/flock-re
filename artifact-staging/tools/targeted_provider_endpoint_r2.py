@@ -339,63 +339,75 @@ def main():
         'com.flocksafety.action.SAVE_SETTINGS',
         'com.flocksaftey.action.SAVE_SETTINGS',
     ]
+    trigger_variants = [
+        {
+            'id': 'package_scope',
+            'target_args': ['-p', 'com.flocksafety.android.phonehomeservice'],
+        },
+        {
+            'id': 'explicit_receiver',
+            'target_args': ['-n', 'com.flocksafety.android.phonehomeservice/.SaveSettingsReceiver'],
+        },
+    ]
     rows_004 = []
     for ep in endpoints:
         for payload in save_settings_payloads(ep):
             for action in action_variants:
-                clear_logcat(adb, args.serial)
-                b = run_adb(
-                    adb,
-                    args.serial,
-                    [
-                        'shell',
-                        'am',
-                        'broadcast',
-                        '-a',
-                        action,
-                        '-p',
-                        'com.flocksafety.android.phonehomeservice',
-                        *payload['extras'],
-                    ],
-                    timeout=30,
-                )
-                time.sleep(1.2)
-                log = read_logcat(adb, args.serial, 600)
-                ss = ss_snapshot(adb, args.serial)
-                host = re.sub(r'^https?://', '', ep, flags=re.IGNORECASE).split('/')[0]
-                host_key = host.split(':')[0]
-                log_text = log.get('stdout') or ''
-                ss_text = ss.get('stdout') or ''
-                marker_words = ['dev-gimlet', 'timed out', 'blocked', 'phonehome', 'unknownhost']
-                host_log_hits = [ln for ln in log_text.splitlines() if host_key.lower() in ln.lower() or any(m in ln.lower() for m in marker_words)][:50]
-                ss_hits = [ln for ln in ss_text.splitlines() if host_key in ln or ':18443' in ln or ':14011' in ln][:50]
-                real_reach = any(('dev-gimlet' in ln.lower()) and 'ESTAB' in ln for ln in ss_hits)
-                status_200 = any('Phonehome request target=' in ln and 'status=200' in ln for ln in log_text.splitlines())
-                cause_code = classify_endpoint_cause_code(b, log_text, ss_text, host_key)
-                rows_004.append({
-                    'endpoint': ep,
-                    'host_key': host_key,
-                    'action': action,
-                    'payload_id': payload['id'],
-                    'broadcast_returncode': b.get('returncode'),
-                    'broadcast_stdout': (b.get('stdout') or '').strip(),
-                    'broadcast_stderr': (b.get('stderr') or '').strip(),
-                    'host_log_hits': host_log_hits,
-                    'socket_hits': ss_hits,
-                    'real_endpoint_reached_signal': real_reach,
-                    'http_status_200_signal': status_200,
-                    'any_endpoint_reached_signal': bool(real_reach or status_200),
-                    'cause_code': cause_code,
-                    'cause_evidence': {
-                        'broadcast_timed_out': bool(b.get('timed_out')),
+                for trigger in trigger_variants:
+                    clear_logcat(adb, args.serial)
+                    b = run_adb(
+                        adb,
+                        args.serial,
+                        [
+                            'shell',
+                            'am',
+                            'broadcast',
+                            '-a',
+                            action,
+                            *trigger['target_args'],
+                            *payload['extras'],
+                        ],
+                        timeout=30,
+                    )
+                    time.sleep(1.2)
+                    log = read_logcat(adb, args.serial, 600)
+                    ss = ss_snapshot(adb, args.serial)
+                    host = re.sub(r'^https?://', '', ep, flags=re.IGNORECASE).split('/')[0]
+                    host_key = host.split(':')[0]
+                    log_text = log.get('stdout') or ''
+                    ss_text = ss.get('stdout') or ''
+                    marker_words = ['dev-gimlet', 'timed out', 'blocked', 'phonehome', 'unknownhost']
+                    host_log_hits = [ln for ln in log_text.splitlines() if host_key.lower() in ln.lower() or any(m in ln.lower() for m in marker_words)][:50]
+                    ss_hits = [ln for ln in ss_text.splitlines() if host_key in ln or ':18443' in ln or ':14011' in ln][:50]
+                    real_reach = any(('dev-gimlet' in ln.lower()) and 'ESTAB' in ln for ln in ss_hits)
+                    status_200 = any('Phonehome request target=' in ln and 'status=200' in ln for ln in log_text.splitlines())
+                    cause_code = classify_endpoint_cause_code(b, log_text, ss_text, host_key)
+                    rows_004.append({
+                        'endpoint': ep,
+                        'host_key': host_key,
+                        'action': action,
+                        'trigger_id': trigger['id'],
+                        'target_args': trigger['target_args'],
+                        'payload_id': payload['id'],
                         'broadcast_returncode': b.get('returncode'),
-                        'unknown_host_signal': bool(re.search(r'unknownhost|unknown host|unable to resolve host|name or service not known', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
-                        'connection_refused_signal': bool(re.search(r'connection refused|econnrefused', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
-                        'socket_reset_signal': bool(re.search(r'connection reset|econnreset|socket reset|broken pipe', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
-                        'timeout_signal': bool(re.search(r'timeout|timed out', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
-                        'host_key_seen_in_log_or_socket': bool(host_key and ((host_key.lower() in log_text.lower()) or (host_key in ss_text))),
-                    },
-                })
+                        'broadcast_stdout': (b.get('stdout') or '').strip(),
+                        'broadcast_stderr': (b.get('stderr') or '').strip(),
+                        'host_log_hits': host_log_hits,
+                        'socket_hits': ss_hits,
+                        'real_endpoint_reached_signal': real_reach,
+                        'http_status_200_signal': status_200,
+                        'any_endpoint_reached_signal': bool(real_reach or status_200),
+                        'cause_code': cause_code,
+                        'cause_evidence': {
+                            'broadcast_timed_out': bool(b.get('timed_out')),
+                            'broadcast_returncode': b.get('returncode'),
+                            'unknown_host_signal': bool(re.search(r'unknownhost|unknown host|unable to resolve host|name or service not known', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
+                            'connection_refused_signal': bool(re.search(r'connection refused|econnrefused', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
+                            'socket_reset_signal': bool(re.search(r'connection reset|econnreset|socket reset|broken pipe', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
+                            'timeout_signal': bool(re.search(r'timeout|timed out', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
+                            'host_key_seen_in_log_or_socket': bool(host_key and ((host_key.lower() in log_text.lower()) or (host_key in ss_text))),
+                        },
+                    })
 
     any_reach = any(r['any_endpoint_reached_signal'] for r in rows_004)
     no_reach_cause_codes = sorted({r['cause_code'] for r in rows_004 if not r['any_endpoint_reached_signal']})
