@@ -418,3 +418,42 @@ def test_invalid_file_length_fails_closed():
     thread.join(1)
     right.close()
     left.close()
+
+
+def test_http_preface_probe_returns_http_400_and_closes():
+    left, right = socket.socketpair()
+    thread = _make_handler_thread(left)
+
+    right.sendall(b"POST / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    response = right.recv(128)
+    assert response.startswith(b"HTTP/1.1 400 Bad Request\r\n")
+
+    thread.join(1)
+    right.close()
+    left.close()
+
+
+def test_http2_preface_probe_returns_http_400_and_closes():
+    left, right = socket.socketpair()
+    thread = _make_handler_thread(left)
+
+    right.sendall(b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
+    response = right.recv(128)
+    assert response.startswith(b"HTTP/1.1 400 Bad Request\r\n")
+
+    thread.join(1)
+    right.close()
+    left.close()
+
+
+def test_first_byte_p_without_http_preface_fails_closed():
+    left, right = socket.socketpair()
+    thread = _make_handler_thread(left)
+
+    right.sendall(b"P\x01\x02\x03")
+    response = right.recv(1)
+    assert response == b"\x00", f"Expected FAIL byte, got {response!r}"
+
+    thread.join(1)
+    right.close()
+    left.close()

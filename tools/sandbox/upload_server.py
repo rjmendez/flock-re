@@ -49,6 +49,32 @@ def fail_closed(conn, log, reason):
     raise ConnectionError(reason)
 
 
+def maybe_handle_http_probe(conn, first_byte, log):
+    if first_byte != b"P":
+        return False
+
+    probe = first_byte
+    try:
+        probe += conn.recv(23, socket.MSG_PEEK)
+    except (BlockingIOError, OSError, ValueError):
+        pass
+
+    upper = probe.upper()
+    is_http1 = upper.startswith((b"POST ", b"PUT ", b"PATCH ", b"PROPFIND ", b"PROPPATCH "))
+    is_http2_preface = upper.startswith(b"PRI * HTTP/2.0")
+    if not (is_http1 or is_http2_preface):
+        return False
+
+    log("   detected HTTP probe payload; replying with deterministic 400 and closing")
+    conn.sendall(
+        b"HTTP/1.1 400 Bad Request\r\n"
+        b"Connection: close\r\n"
+        b"Content-Length: 0\r\n"
+        b"\r\n"
+    )
+    return True
+
+
 def handle(conn, addr, args):
 
     log = lambda *a: print(f"[{addr[1]}]", *a, flush=True)
@@ -59,6 +85,8 @@ def handle(conn, addr, args):
             op_b = conn.recv(1)
             if not op_b:
                 log("connection closed"); return
+            if maybe_handle_http_probe(conn, op_b, log):
+                return
             op = op_b[0]
             log(f"<- opcode {op} ({NAMES.get(op,'?')})")
             if op == HELLO:
