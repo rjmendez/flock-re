@@ -46,6 +46,69 @@ def run_adb(adb, serial, args, timeout=40):
         }
 
 
+def preflight_checks(adb, serial):
+    checks = {
+        'adb_exists': adb.exists(),
+        'adb_path': str(adb),
+    }
+    if not checks['adb_exists']:
+        checks['overall_ok'] = False
+        checks['failure_reason_code'] = 'adb_not_found'
+        return checks
+
+    get_state = run_adb(adb, serial, ['get-state'], timeout=20)
+    checks['device_get_state'] = {
+        'returncode': get_state.get('returncode'),
+        'stdout': (get_state.get('stdout') or '').strip(),
+        'stderr': (get_state.get('stderr') or '').strip(),
+        'timed_out': bool(get_state.get('timed_out')),
+    }
+    state_ok = get_state.get('returncode') == 0 and (get_state.get('stdout') or '').strip() == 'device'
+
+    shell_probe = run_adb(adb, serial, ['shell', 'echo', '__r2_preflight_ok__'], timeout=20)
+    checks['minimal_shell_probe'] = {
+        'returncode': shell_probe.get('returncode'),
+        'stdout': (shell_probe.get('stdout') or '').strip(),
+        'stderr': (shell_probe.get('stderr') or '').strip(),
+        'timed_out': bool(shell_probe.get('timed_out')),
+    }
+    shell_ok = shell_probe.get('returncode') == 0 and '__r2_preflight_ok__' in (shell_probe.get('stdout') or '')
+
+    checks['overall_ok'] = bool(state_ok and shell_ok)
+    if checks['overall_ok']:
+        checks['failure_reason_code'] = None
+    elif not state_ok:
+        checks['failure_reason_code'] = 'device_unreachable'
+    else:
+        checks['failure_reason_code'] = 'shell_probe_failed'
+    return checks
+
+
+def classify_endpoint_cause_code(broadcast_rec, log_text, socket_text, host_key):
+    joined = '\n'.join(
+        [
+            (broadcast_rec.get('stdout') or ''),
+            (broadcast_rec.get('stderr') or ''),
+            log_text or '',
+            socket_text or '',
+        ]
+    ).lower()
+    host_l = (host_key or '').lower()
+    if 'phonehome request target=' in joined and 'status=200' in joined:
+        return 'status_200'
+    if host_l and ('estab' in joined) and (host_l in joined):
+        return 'real_network_reach'
+    if broadcast_rec.get('timed_out') or broadcast_rec.get('returncode') == 124 or ' timed out' in joined or 'timeout' in joined:
+        return 'timeout'
+    if any(k in joined for k in ['unknownhost', 'unknown host', 'unable to resolve host', 'name or service not known']):
+        return 'unknown_host'
+    if any(k in joined for k in ['connection refused', 'econnrefused']):
+        return 'connection_refused'
+    if any(k in joined for k in ['connection reset', 'econnreset', 'socket reset', 'broken pipe']):
+        return 'socket_reset'
+    return 'no_signal'
+
+
 def classify_provider(rec):
     text = ((rec.get('stdout') or '') + '\n' + (rec.get('stderr') or '')).lower()
     if 'nullpointerexception' in text:
@@ -138,6 +201,29 @@ def main():
         'loaded': bool(guidance and not guidance.get('error')),
         'error': guidance.get('error') if isinstance(guidance, dict) else None,
     }
+    report['preflight'] = preflight_checks(adb, args.serial)
+    if not report['preflight'].get('overall_ok'):
+        report['halted_before_campaigns'] = True
+        report['halt_reason_code'] = report['preflight'].get('failure_reason_code') or 'preflight_failed'
+        (out / 'targeted_report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+        md = [
+            '# Targeted Provider + Endpoint Fuzz Report (R2)',
+            '',
+            f"- Generated: `{report['generated_at_utc']}`",
+            f"- Serial: `{args.serial}`",
+            '',
+            '## preflight',
+            '',
+            '```json',
+            json.dumps(report['preflight'], indent=2),
+            '```',
+            '',
+            f"- halted_before_campaigns: `{report['halted_before_campaigns']}`",
+            f"- halt_reason_code: `{report['halt_reason_code']}`",
+            '',
+        ]
+        (out / 'targeted_report.md').write_text('\n'.join(md), encoding='utf-8')
+        raise SystemExit(2)
 
     # 001 provider npe envelope
     cases_001 = [
@@ -285,6 +371,7 @@ def main():
                 ss_hits = [ln for ln in ss_text.splitlines() if host_key in ln or ':18443' in ln or ':14011' in ln][:50]
                 real_reach = any(('dev-gimlet' in ln.lower()) and 'ESTAB' in ln for ln in ss_hits)
                 status_200 = any('Phonehome request target=' in ln and 'status=200' in ln for ln in log_text.splitlines())
+                cause_code = classify_endpoint_cause_code(b, log_text, ss_text, host_key)
                 rows_004.append({
                     'endpoint': ep,
                     'host_key': host_key,
@@ -298,8 +385,21 @@ def main():
                     'real_endpoint_reached_signal': real_reach,
                     'http_status_200_signal': status_200,
                     'any_endpoint_reached_signal': bool(real_reach or status_200),
+                    'cause_code': cause_code,
+                    'cause_evidence': {
+                        'broadcast_timed_out': bool(b.get('timed_out')),
+                        'broadcast_returncode': b.get('returncode'),
+                        'unknown_host_signal': bool(re.search(r'unknownhost|unknown host|unable to resolve host|name or service not known', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
+                        'connection_refused_signal': bool(re.search(r'connection refused|econnrefused', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
+                        'socket_reset_signal': bool(re.search(r'connection reset|econnreset|socket reset|broken pipe', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
+                        'timeout_signal': bool(re.search(r'timeout|timed out', ((b.get('stdout') or '') + '\n' + (b.get('stderr') or '') + '\n' + log_text), flags=re.IGNORECASE)),
+                        'host_key_seen_in_log_or_socket': bool(host_key and ((host_key.lower() in log_text.lower()) or (host_key in ss_text))),
+                    },
                 })
 
+    any_reach = any(r['any_endpoint_reached_signal'] for r in rows_004)
+    no_reach_cause_codes = sorted({r['cause_code'] for r in rows_004 if not r['any_endpoint_reached_signal']})
+    summary_reason_codes = ['reach_observed'] if any_reach else (no_reach_cause_codes if no_reach_cause_codes else ['no_signal'])
     report['todo_results']['fuzz-targeted-004-endpoint-egress-guard-abuse'] = {
         'summary': {
             'attempt_count': len(rows_004),
@@ -310,6 +410,10 @@ def main():
             'any_endpoint_reached_any': any(r['any_endpoint_reached_signal'] for r in rows_004),
             'rows_with_any_endpoint_reach': [r['endpoint'] for r in rows_004 if r['any_endpoint_reached_signal']],
             'sandbox_local_endpoint_rows': [r['endpoint'] for r in rows_004 if '10.0.2.2' in r['endpoint'] or '127.0.0.1' in r['endpoint'] or '2130706433' in r['endpoint']],
+            'endpoint_reach_assertion_outcome': 'pass' if any_reach else 'fail',
+            'endpoint_reach_assertion_reason_codes': summary_reason_codes,
+            'endpoint_reach_assertion_final_reason_code': summary_reason_codes[0],
+            'no_reach_reason_codes': no_reach_cause_codes if not any_reach else [],
         },
         'attempts': rows_004,
     }
