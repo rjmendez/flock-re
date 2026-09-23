@@ -284,6 +284,7 @@ def main():
                 host_log_hits = [ln for ln in log_text.splitlines() if host_key.lower() in ln.lower() or any(m in ln.lower() for m in marker_words)][:50]
                 ss_hits = [ln for ln in ss_text.splitlines() if host_key in ln or ':18443' in ln or ':14011' in ln][:50]
                 real_reach = any(('dev-gimlet' in ln.lower()) and 'ESTAB' in ln for ln in ss_hits)
+                status_200 = any('Phonehome request target=' in ln and 'status=200' in ln for ln in log_text.splitlines())
                 rows_004.append({
                     'endpoint': ep,
                     'host_key': host_key,
@@ -295,6 +296,8 @@ def main():
                     'host_log_hits': host_log_hits,
                     'socket_hits': ss_hits,
                     'real_endpoint_reached_signal': real_reach,
+                    'http_status_200_signal': status_200,
+                    'any_endpoint_reached_signal': bool(real_reach or status_200),
                 })
 
     report['todo_results']['fuzz-targeted-004-endpoint-egress-guard-abuse'] = {
@@ -302,6 +305,10 @@ def main():
             'attempt_count': len(rows_004),
             'real_endpoint_reached_any': any(r['real_endpoint_reached_signal'] for r in rows_004),
             'rows_with_reach_signal': [r['endpoint'] for r in rows_004 if r['real_endpoint_reached_signal']],
+            'http_status_200_any': any(r['http_status_200_signal'] for r in rows_004),
+            'rows_with_http_status_200': [r['endpoint'] for r in rows_004 if r['http_status_200_signal']],
+            'any_endpoint_reached_any': any(r['any_endpoint_reached_signal'] for r in rows_004),
+            'rows_with_any_endpoint_reach': [r['endpoint'] for r in rows_004 if r['any_endpoint_reached_signal']],
             'sandbox_local_endpoint_rows': [r['endpoint'] for r in rows_004 if '10.0.2.2' in r['endpoint'] or '127.0.0.1' in r['endpoint'] or '2130706433' in r['endpoint']],
         },
         'attempts': rows_004,
